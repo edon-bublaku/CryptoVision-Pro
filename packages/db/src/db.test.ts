@@ -22,12 +22,12 @@ import {
   recordLoginAttempt,
   replaceAlerts,
   replacePortfolio,
-  runMigrations,
   startScan,
   trackRecord,
   updateTracked,
   upsertCandles,
 } from "./index";
+import { runMigrations } from "./migrate";
 
 const url = process.env.TEST_DATABASE_URL;
 

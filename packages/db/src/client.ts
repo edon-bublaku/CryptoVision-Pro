@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import { drizzle, type NodePgDatabase } from "drizzle-orm/node-postgres";
 import pg from "pg";
 import * as schema from "./schema";
@@ -31,4 +32,13 @@ export function requireDb(): Db {
 export async function closeDb() {
   await cache.__cvDb?.pool.end();
   cache.__cvDb = undefined;
+}
+
+export async function pingDb(db: Db): Promise<boolean> {
+  try {
+    await db.execute(sql`select 1`);
+    return true;
+  } catch {
+    return false;
+  }
 }
