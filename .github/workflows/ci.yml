@@ -32,7 +32,7 @@ jobs:
       DATABASE_URL: postgres://cryptovision:cryptovision@localhost:5432/cryptovision
       TEST_DATABASE_URL: postgres://cryptovision:cryptovision@localhost:5432/cryptovision_test
       REDIS_URL: redis://localhost:6379
-      ENCRYPTION_KEY: 0000000000000000000000000000000000000000000000000000000000000001
+      ENCRYPTION_KEY: "0000000000000000000000000000000000000000000000000000000000000001"
       NEXT_TELEMETRY_DISABLED: "1"
     steps:
       - uses: actions/checkout@v4

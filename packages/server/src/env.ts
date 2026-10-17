@@ -28,7 +28,9 @@ let cached: Env | null = null;
 /** Validated environment. Throws on startup with a readable message if anything is malformed. */
 export function env(): Env {
   if (cached) return cached;
-  const parsed = schema.safeParse(process.env);
+  // `KEY=` in an env file means "unset", not an empty value that fails validation.
+  const raw = Object.fromEntries(Object.entries(process.env).filter(([, v]) => v !== ""));
+  const parsed = schema.safeParse(raw);
   if (!parsed.success) throw new Error(`Invalid environment:\n${parsed.error.issues.map((i) => `  ${i.path.join(".")}: ${i.message}`).join("\n")}`);
   if (parsed.data.DATABASE_URL && !parsed.data.ENCRYPTION_KEY && parsed.data.NODE_ENV === "production")
     throw new Error("ENCRYPTION_KEY is required in production when DATABASE_URL is set");
