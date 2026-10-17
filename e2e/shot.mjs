@@ -13,7 +13,7 @@ await page.addInitScript(() => {
   s.state.disclaimerAccepted = true;
   localStorage.setItem("cv.settings", JSON.stringify(s));
 });
-await page.goto(`http://localhost:3000${path}`, { waitUntil: "domcontentloaded" });
+await page.goto(`http://localhost:${process.env.PORT ?? 3000}${path}`, { waitUntil: "domcontentloaded" });
 await page.waitForTimeout(+wait);
 await page.screenshot({ path: out });
 console.log(errors.length ? errors.join("\n---\n") : "no console errors");
