@@ -68,7 +68,7 @@ class BinanceStream {
   }
 
   private connect() {
-    if (typeof window === "undefined") return;
+    if (typeof WebSocket === "undefined") return;
     this.setStatus("connecting");
     const ws = new WebSocket(`${WS_HOSTS[this.hostIdx % WS_HOSTS.length]}/stream`);
     this.ws = ws;

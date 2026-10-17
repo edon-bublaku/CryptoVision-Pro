@@ -1,0 +1,27 @@
+{
+  "name": "@cv/worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "CV_SERVICE=worker tsx watch src/index.ts",
+    "start": "CV_SERVICE=worker tsx src/index.ts",
+    "vapid": "tsx src/vapid.ts",
+    "once": "CV_SERVICE=worker tsx src/index.ts --once"
+  },
+  "dependencies": {
+    "@cv/core": "workspace:*",
+    "@cv/db": "workspace:*",
+    "@cv/engine": "workspace:*",
+    "@cv/exchange": "workspace:*",
+    "@cv/indicators": "workspace:*",
+    "@cv/server": "workspace:*",
+    "bullmq": "^5.81.5",
+    "ioredis": "^5.11.1",
+    "tsx": "^4.23.15",
+    "web-push": "^3.6.7"
+  },
+  "devDependencies": {
+    "@types/web-push": "^3.6.4"
+  }
+}
