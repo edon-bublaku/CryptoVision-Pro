@@ -6,7 +6,6 @@ import type { Drawing } from "@/lib/chart/drawing-types";
 import { translate } from "@/lib/i18n";
 import { useAlerts, type Alert } from "@/lib/store/alerts";
 import { useAuth } from "@/lib/store/auth";
-import { useChartUi } from "@/lib/store/chart-ui";
 import { useDrawings } from "@/lib/store/drawings";
 import { usePortfolio, type ClosedTrade, type Position } from "@/lib/store/portfolio";
 import { useSavedScans } from "@/lib/store/screens";
@@ -37,6 +36,8 @@ function unionById<T extends { id: string }>(local: T[], server: T[]): T[] {
 }
 
 /**
+ * Chart layout (panels) stays per device on purpose: syncing it would fight deep links.
+ *
  * Mirrors local stores to the server while signed in. On login the server snapshot is merged
  * with local data (newest drawing set per symbol, union of positions/alerts, server settings win),
  * then every change is pushed with a short debounce. Local-only mode keeps working untouched.
@@ -137,7 +138,6 @@ export function SyncManager() {
       if (!value || typeof value !== "object") return;
       if (key === "settings") useSettings.setState(value as Partial<SettingsState>);
       if (key === "screens") useSavedScans.setState({ saved: (value as { saved: [] }).saved ?? [] });
-      if (key === "chartUi") useChartUi.setState({ panels: (value as { panels: [] }).panels ?? useChartUi.getState().panels });
     }
 
     (async () => {
@@ -168,7 +168,6 @@ export function SyncManager() {
         await Promise.all([
           snap.state.settings ? Promise.resolve() : putState("settings", pickSettings(s)),
           snap.state.screens ? Promise.resolve() : putState("screens", { saved: useSavedScans.getState().saved }),
-          snap.state.chartUi ? Promise.resolve() : putState("chartUi", { panels: useChartUi.getState().panels }),
           dirtySymbols.size ? pushDrawings() : Promise.resolve(),
           pushPortfolio(),
           pushAlerts(),
@@ -188,9 +187,6 @@ export function SyncManager() {
       }),
       useSavedScans.subscribe((s, prev) => {
         if (!applying.current && s.saved !== prev.saved) debounce("screens", () => void putState("screens", { saved: useSavedScans.getState().saved }));
-      }),
-      useChartUi.subscribe((s, prev) => {
-        if (!applying.current && s.panels !== prev.panels) debounce("chartUi", () => void putState("chartUi", { panels: useChartUi.getState().panels }), 2000);
       }),
       useDrawings.subscribe((s, prev) => {
         if (applying.current || s.bySymbol === prev.bySymbol) return;

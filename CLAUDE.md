@@ -48,10 +48,10 @@ me shpjegim transparent *pse*, dhe me mjete profesionale charting për analizën
 | DB | **PostgreSQL 16 + TimescaleDB** (hypertables për OHLCV) | Time-series efikase |
 | ORM | **Drizzle ORM** + migrime SQL | Tipizim i fortë, SQL transparent |
 | Cache / PubSub | **Redis** | Cache çmimesh, pub/sub për sinjale live, rate-limit |
-| Auth | **Auth.js (NextAuth v5)** — email magic link + Google + 2FA (TOTP) | Siguri |
+| Auth | Auth e vetë-implementuar: email + fjalëkalim (scrypt), sesione në DB, 2FA TOTP ([ADR 0003](docs/decisions/0003-custom-auth.md)) | Siguri, sesione të revokueshme |
 | Real-time te klienti | **Server-Sent Events** ose WS (`apps/realtime`) | Push sinjalesh/alertesh |
 | Njoftime | Web Push, Email (Resend), Telegram Bot | Alerte |
-| AI (opsionale) | Claude API (`claude-sonnet-5-5` default, `claude-opus-5-5` për raporte të thella) | Shpjegim natyral i sinjaleve |
+| AI (opsionale) | Claude API, modeli nga `AI_MODEL` (default `claude-opus-5-5`), streaming | Shpjegim natyral i sinjaleve |
 | Testim | **Vitest** (unit), **Playwright** (e2e), **fast-check** (property-based për indikatorët) | Besueshmëri |
 | Observability | **Pino** logs, **OpenTelemetry**, Sentry | Debug në prodhim |
 | Deploy | Docker Compose (dev), Vercel (web) + Fly.io/Railway (worker, DB, Redis) | |
@@ -448,36 +448,40 @@ Puno **fazë pas faze**. Mos kalo në fazën tjetër pa plotësuar Definition of
 
 ## 12b. Gjendja aktuale e implementimit (2026-10-17)
 
-Versioni i parë është **client-side first** ([ADR 0001](docs/decisions/0001-client-side-first.md)).
-Paketat e analizës janë pure, që të zhvendosen pa ndryshime në backend më vonë.
+Aplikacioni punon në **mënyrë hibride** ([ADR 0004](docs/decisions/0004-worker-hybrid-mode.md)):
+plotësisht në browser pa server ([ADR 0001](docs/decisions/0001-client-side-first.md)), ose me llogari,
+sinkronizim dhe worker kur ka `DATABASE_URL` + `REDIS_URL`.
 
 | Faza | Statusi | Shënime |
 |---|---|---|
-| F0 | ✅ pjesërisht | Monorepo pnpm, TS strict, Vitest, Playwright. Pa Docker/DB/CI ende |
-| F1 | ✅ | Binance REST me fallback hostesh dhe backoff. Një WebSocket i multipleksuar me rilidhje dhe gap-fill (`apps/web/lib/data`). Adaptorët Bybit/OKX mungojnë |
+| F0 | ✅ | Monorepo pnpm, TS strict, Vitest, Playwright, Drizzle + Postgres (TimescaleDB opsionale), Dockerfile, docker-compose, GitHub Actions CI |
+| F1 | ✅ | `packages/exchange`: Binance REST/WS (browser + Node), CoinGecko, Fear & Greed, OKX derivate. Rilidhje dhe gap-fill. Bybit mungon |
 | F2 | ✅ | Grafik live, lazy history, kërkim simboli (Ctrl+K), layout 1/2/4, replay, screenshot |
 | F3 | ✅ | 25 indikatorë në grafik. Testet krahasojnë me `technicalindicators` |
-| F4 | ✅ | 20 mjete vizatimi, undo/redo, magnet, stile, alert nga vizatimi. Persistenca në localStorage, jo në DB |
-| F5 | ✅ | Regjimi, 18 faktorë, 6 strategji, plane rreziku me decimal.js |
-| F6 | ✅ | Backtest event-driven, walk-forward (stabilitet), Monte Carlo, Backtest Lab, gate per coin ([ADR 0002](docs/decisions/0002-backtest-gate.md)) |
-| F7 | ✅ | Paneli, Sinjalet + track record, Raporti i coinit, Skaneri |
-| F8 | ◐ | Portofoli dhe alertet (në aplikacion, browser, Telegram) funksionojnë. **Mungon:** auth, email, push në server |
-| F9 | ◐ | SMC, modele qirinjsh dhe double top/bottom, shpjegim deterministik në gjuhë natyrore. **Mungon:** derivate, Elliott/XABCD, AI |
-| F10 | ◐ | i18n sq/en, temë e çelët, paletë për daltonizëm, mobile 390px pa overflow. **Mungon:** CSP, observability, deploy |
+| F4 | ✅ | Undo/redo, magnet, stile, alert nga vizatimi. Persistencë lokale + sinkronizim në DB për përdoruesit me llogari |
+| F5 | ✅ | Regjimi, 19 faktorë (përfshirë derivatet), 6 strategji, plane rreziku me decimal.js |
+| F6 | ✅ | Backtest event-driven, walk-forward, Monte Carlo, Backtest Lab, gate për coin ([ADR 0002](docs/decisions/0002-backtest-gate.md)) |
+| F7 | ✅ | Paneli, Sinjalet + track record (lokal dhe në server), Raporti i coinit, Skaneri, faqja `/welcome` |
+| F8 | ✅ | Auth me 2FA ([ADR 0003](docs/decisions/0003-custom-auth.md)), portofoli dhe alertet të sinkronizuara, worker BullMQ, njoftime: aplikacion, browser, Web Push, Telegram, email, SSE |
+| F9 | ✅ | 31 mjete vizatimi (Gann, Fib fan/time, regresion, XABCD, Elliott, H&S, callout), derivate OKX, SMC, modele, shpjegim AI me Claude |
+| F10 | ◐ | i18n sq/en, temë e çelët, daltonizëm, PWA, CSP + headers, rate limit, audit log, pino. **Mungon:** OpenTelemetry/Sentry, deploy i automatizuar |
 
 **Kontratat aktuale** (ndryshohen vetëm me ADR):
 
 - `Signal`, `TradePlan` dhe `FactorResult` te `packages/core/src/types.ts`.
 - `Drawing` te `apps/web/lib/chart/drawing-types.ts` (`schemaVersion`).
-- Store-t e ruajtura `cv.*`, të versionuara.
+- `Snapshot`, `ScanRow`, `TrackedSignal` te `packages/engine/src/types.ts`.
+- Skema e DB-së te `packages/db/src/schema.ts`; çdo ndryshim kërkon `pnpm db:generate` dhe migrim të ri.
+- Store-t e ruajtura `cv.*`, të versionuara. `chartUi` nuk sinkronizohet (specifik për pajisjen).
 
 **Komandat reale:**
 
-- `pnpm dev`, `pnpm test`, `pnpm typecheck`, `pnpm build`
-- `pnpm exec playwright test`
+- `pnpm dev`, `pnpm test`, `pnpm typecheck`, `pnpm build`, `pnpm test:e2e`
+- `pnpm services`, `pnpm db:migrate`, `pnpm db:generate`, `pnpm dev:worker`, `pnpm test:integration`
+- `docker compose up -d --build` (stack i plotë)
 - `pnpm backtest …`, `pnpm validate:oos`
 
-Komandat me Docker/DB te §11 vlejnë vetëm pasi të shtohet backend-i.
+`pnpm db:seed` dhe `pnpm lint` nga §10–11 nuk ekzistojnë ende.
 
 **Rregull i shtuar:** çdo ndryshim në strategji ose faktorë duhet të ekzekutojë `pnpm validate:oos` dhe të
 përditësojë numrat te `docs/strategies/README.md`. Kjo vlen edhe kur numrat përkeqësohen.

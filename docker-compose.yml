@@ -1,0 +1,55 @@
+# Full stack: TimescaleDB + Redis + web + worker.
+#   cp .env.example .env   # set ENCRYPTION_KEY (openssl rand -hex 32) and optional keys
+#   docker compose up -d --build
+services:
+  db:
+    image: timescale/timescaledb:latest-pg16
+    environment:
+      POSTGRES_USER: cryptovision
+      POSTGRES_PASSWORD: cryptovision
+      POSTGRES_DB: cryptovision
+    volumes: [db:/var/lib/postgresql/data]
+    ports: ["5432:5432"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cryptovision"]
+      interval: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes: [redis:/data]
+    ports: ["6379:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 20
+
+  # The worker applies migrations on start; the web app starts after it.
+  worker:
+    build: { context: ., target: worker }
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://cryptovision:cryptovision@db:5432/cryptovision
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      db: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    restart: unless-stopped
+
+  web:
+    build: { context: ., target: web }
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://cryptovision:cryptovision@db:5432/cryptovision
+      REDIS_URL: redis://redis:6379
+    ports: ["3000:3000"]
+    depends_on:
+      db: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      worker: { condition: service_started }
+    restart: unless-stopped
+
+volumes:
+  db:
+  redis:
