@@ -10,7 +10,11 @@
     "test:watch": "vitest",
     "typecheck": "tsc -p tsconfig.json --noEmit && pnpm --filter @cv/web typecheck",
     "backtest": "tsx scripts/backtest-cli.ts",
-    "validate:oos": "tsx scripts/validate-oos.ts"
+    "validate:oos": "tsx scripts/validate-oos.ts",
+    "services": "bash scripts/dev-services.sh",
+    "db:migrate": "pnpm --filter @cv/db migrate",
+    "db:generate": "pnpm --filter @cv/db generate",
+    "test:integration": "TEST_DATABASE_URL=${TEST_DATABASE_URL:-postgres://cryptovision@localhost:5432/cryptovision_test} vitest run"
   },
   "devDependencies": {
     "@playwright/test": "~1.56.1",
