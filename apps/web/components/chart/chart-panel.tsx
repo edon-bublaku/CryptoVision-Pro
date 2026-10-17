@@ -70,7 +70,7 @@ const ts = (t: number) => t as UTCTimestamp;
 
 function themeColors() {
   return {
-    bg: cssVar("--panel", "#10141c"),
+    bg: cssVar("--panel-solid", "#10141c"),
     fg: cssVar("--muted", "#8b95a8"),
     grid: cssVar("--line", "#1f2633"),
     border: cssVar("--line-strong", "#2b3445"),

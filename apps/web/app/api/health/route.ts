@@ -11,9 +11,11 @@ export async function GET() {
   const dbOk = db ? await pingDb(db) : false;
   const redis = getRedis();
   let redisOk = false;
+  let worker = false;
   if (redis) {
     try {
       redisOk = (await redis.ping()) === "PONG";
+      worker = !!(await redis.get("cv:worker:heartbeat"));
     } catch {
       redisOk = false;
     }
@@ -23,6 +25,7 @@ export async function GET() {
       ok: true,
       db: dbOk,
       redis: redisOk,
+      worker,
       ai: !!e.ANTHROPIC_API_KEY,
       telegram: !!e.TELEGRAM_BOT_TOKEN,
       email: !!e.RESEND_API_KEY,

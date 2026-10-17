@@ -5,7 +5,7 @@ import type { RiskProfile } from "@cv/risk";
 import { Download, Send, Settings, Trash2, Upload } from "lucide-react";
 import { useRef } from "react";
 import { sendTelegram } from "@/components/layout/alert-engine";
-import { Button, Card, CardHeader, Field, Input, Segmented, Select, Switch } from "@/components/ui/primitives";
+import { Button, Card, CardHeader, Field, Input, Segmented, Select, Switch, PageHeader } from "@/components/ui/primitives";
 import { toast } from "@/components/ui/toast";
 import { useT } from "@/lib/i18n";
 import { useSettings } from "@/lib/store/settings";
@@ -19,10 +19,8 @@ export default function SettingsPage() {
   const fileRef = useRef<HTMLInputElement>(null);
 
   return (
-    <div className="mx-auto max-w-3xl space-y-4 p-4 lg:p-6">
-      <h1 className="flex items-center gap-2 text-xl font-bold">
-        <Settings size={20} className="text-accent" /> {t("settings.title")}
-      </h1>
+    <div className="mx-auto max-w-3xl space-y-5 p-4 lg:p-8">
+      <PageHeader icon={<Settings size={20} />} title={t("settings.title")} />
 
       <Card>
         <CardHeader title={`${t("settings.language")} · ${t("settings.theme")}`} />

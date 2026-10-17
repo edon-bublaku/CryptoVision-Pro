@@ -13,12 +13,12 @@ export const Button = forwardRef<HTMLButtonElement, ButtonHTMLAttributes<HTMLBut
       <button
         ref={ref}
         className={cn(
-          "inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:pointer-events-none disabled:opacity-50 whitespace-nowrap",
-          size === "xs" && "h-7 px-2 text-xs",
+          "inline-flex items-center justify-center gap-1.5 rounded-lg font-medium transition-all duration-150 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50 whitespace-nowrap",
+          size === "xs" && "h-7 px-2.5 text-xs",
           size === "sm" && "h-8 px-3 text-sm",
           size === "md" && "h-10 px-4 text-sm",
-          variant === "primary" && "bg-accent text-white hover:brightness-110",
-          variant === "secondary" && "border border-line bg-panel-2 text-fg hover:border-line-strong hover:bg-line/60",
+          variant === "primary" && "brand-gradient text-[#060911] font-semibold shadow-[0_6px_20px_-8px_rgba(123,140,255,0.8)] hover:brightness-110 hover:shadow-[0_8px_28px_-6px_rgba(123,140,255,0.9)]",
+          variant === "secondary" && "border border-line bg-panel-2 text-fg hover:border-line-strong hover:bg-[color-mix(in_oklab,var(--fg)_7%,transparent)]",
           variant === "ghost" && "text-muted hover:bg-panel-2 hover:text-fg",
           variant === "danger" && "bg-bear text-white hover:brightness-110",
           variant === "bull" && "bg-bull text-white hover:brightness-110",
@@ -33,12 +33,12 @@ export const Button = forwardRef<HTMLButtonElement, ButtonHTMLAttributes<HTMLBut
 );
 
 export function Card({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("min-w-0 rounded-xl border border-line bg-panel", className)} {...props} />;
+  return <div className={cn("glass shadow-card min-w-0 rounded-2xl border border-line", className)} {...props} />;
 }
 
 export function CardHeader({ title, subtitle, right, className }: { title: ReactNode; subtitle?: ReactNode; right?: ReactNode; className?: string }) {
   return (
-    <div className={cn("flex flex-wrap items-start justify-between gap-x-3 gap-y-2 border-b border-line px-4 py-3", className)}>
+    <div className={cn("flex flex-wrap items-start justify-between gap-x-3 gap-y-2 border-b border-line px-5 py-3.5", className)}>
       <div className="min-w-0">
         <h3 className="truncate text-sm font-semibold text-fg">{title}</h3>
         {subtitle && <p className="mt-0.5 text-xs text-muted">{subtitle}</p>}
@@ -52,7 +52,7 @@ export function Badge({ className, tone = "neutral", ...props }: HTMLAttributes<
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide",
+        "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-semibold uppercase tracking-wide",
         tone === "neutral" && "bg-panel-2 text-muted",
         tone === "bull" && "bg-bull-soft text-bull",
         tone === "bear" && "bg-bear-soft text-bear",
@@ -69,7 +69,7 @@ export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputE
   return (
     <input
       ref={ref}
-      className={cn("h-8 w-full rounded-md border border-line bg-panel-2 px-2.5 text-sm text-fg placeholder:text-faint focus:border-accent focus:outline-none", className)}
+      className={cn("h-9 w-full rounded-lg border border-line bg-panel-2 px-3 text-sm text-fg transition-colors placeholder:text-faint focus:border-accent focus:bg-[color-mix(in_oklab,var(--accent)_6%,transparent)] focus:outline-none", className)}
       {...props}
     />
   );
@@ -77,7 +77,7 @@ export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputE
 
 export function Select({ className, children, ...props }: SelectHTMLAttributes<HTMLSelectElement>) {
   return (
-    <select className={cn("h-8 rounded-md border border-line bg-panel-2 px-2 text-sm text-fg focus:border-accent focus:outline-none", className)} {...props}>
+    <select className={cn("h-9 rounded-lg border border-line bg-panel-solid px-2.5 text-sm text-fg focus:border-accent focus:outline-none", className)} {...props}>
       {children}
     </select>
   );
@@ -112,7 +112,7 @@ export function Switch({ checked, onChange, label }: { checked: boolean; onChang
 
 export function Segmented<T extends string | number>({ value, options, onChange, size = "sm", className }: { value: T; options: { value: T; label: ReactNode; title?: string }[]; onChange: (v: T) => void; size?: "xs" | "sm"; className?: string }) {
   return (
-    <div className={cn("inline-flex rounded-md border border-line bg-panel-2 p-0.5", className)} role="radiogroup">
+    <div className={cn("inline-flex rounded-lg border border-line bg-panel-2 p-0.5", className)} role="radiogroup">
       {options.map((o) => (
         <button
           key={String(o.value)}
@@ -121,9 +121,9 @@ export function Segmented<T extends string | number>({ value, options, onChange,
           title={o.title}
           onClick={() => onChange(o.value)}
           className={cn(
-            "rounded px-2 font-medium transition-colors",
+            "rounded-md px-2.5 font-medium transition-all",
             size === "xs" ? "h-6 text-xs" : "h-7 text-xs",
-            o.value === value ? "bg-accent text-white" : "text-muted hover:text-fg",
+            o.value === value ? "bg-[color-mix(in_oklab,var(--accent)_22%,transparent)] text-fg shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--accent)_45%,transparent)]" : "text-muted hover:text-fg",
           )}
         >
           {o.label}
@@ -150,16 +150,16 @@ export function Modal({ open, onClose, title, children, wide }: { open: boolean;
       <div
         role="dialog"
         aria-modal="true"
-        className={cn("max-h-[92vh] w-full overflow-auto rounded-t-2xl border border-line bg-panel shadow-2xl sm:rounded-2xl", wide ? "sm:max-w-3xl" : "sm:max-w-lg")}
+        className={cn("animate-fade-up max-h-[92vh] w-full overflow-auto rounded-t-3xl border border-line bg-panel-solid shadow-2xl sm:rounded-3xl", wide ? "sm:max-w-3xl" : "sm:max-w-lg")}
         onMouseDown={(e) => e.stopPropagation()}
       >
-        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-line bg-panel px-5 py-3">
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-line bg-panel-solid px-6 py-4">
           <h2 className="text-base font-semibold">{title}</h2>
           <button onClick={onClose} className="rounded p-1 text-muted hover:bg-panel-2 hover:text-fg" aria-label="Close">
             <X size={18} />
           </button>
         </div>
-        <div className="p-5">{children}</div>
+        <div className="p-6">{children}</div>
       </div>
     </div>,
     document.body,
@@ -180,8 +180,24 @@ export function Stat({ label, value, sub, tone }: { label: ReactNode; value: Rea
   return (
     <div className="min-w-0">
       <div className="truncate text-[11px] font-medium uppercase tracking-wide text-muted">{label}</div>
-      <div className={cn("num mt-0.5 truncate text-lg font-semibold", tone === "bull" && "text-bull", tone === "bear" && "text-bear")}>{value}</div>
+      <div className={cn("num mt-1 truncate text-xl font-semibold tracking-tight", tone === "bull" && "text-bull", tone === "bear" && "text-bear")}>{value}</div>
       {sub && <div className="num truncate text-xs text-muted">{sub}</div>}
+    </div>
+  );
+}
+
+/** Consistent page header: gradient icon chip, title, subtitle and actions. */
+export function PageHeader({ icon, title, subtitle, actions }: { icon: ReactNode; title: ReactNode; subtitle?: ReactNode; actions?: ReactNode }) {
+  return (
+    <div className="animate-fade-up flex flex-wrap items-end justify-between gap-4">
+      <div className="flex items-center gap-3.5">
+        <div className="brand-gradient flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-[#060911] shadow-[0_10px_30px_-10px_rgba(123,140,255,0.9)]">{icon}</div>
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
+          {subtitle && <p className="mt-0.5 max-w-2xl text-sm text-muted">{subtitle}</p>}
+        </div>
+      </div>
+      {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
     </div>
   );
 }

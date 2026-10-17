@@ -6,13 +6,17 @@ import { History, Loader2, RefreshCw, ShieldAlert, Zap } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { SignalCard } from "@/components/signals/signal-card";
-import { Badge, Button, Card, CardHeader, Empty, Field, Segmented, Select, Switch } from "@/components/ui/primitives";
+import { Badge, Button, Card, CardHeader, Empty, Field, Segmented, Select, Switch, PageHeader } from "@/components/ui/primitives";
 import { ActionBadge, CoinIcon } from "@/components/ui/viz";
 import { useT } from "@/lib/i18n";
 import { useScan, type TrackedSignal } from "@/lib/store/scan";
 import { useSettings } from "@/lib/store/settings";
 import { STRATEGY_IDS } from "@cv/signals";
 import { useScanner } from "@/lib/use-scanner";
+import { useSignalRows } from "@/lib/use-signal-rows";
+import { useAuth } from "@/lib/store/auth";
+import { api } from "@/lib/api";
+import { useQuery } from "@tanstack/react-query";
 import { cn, timeAgo } from "@/lib/utils";
 
 const SCAN_TFS: Timeframe[] = ["15m", "1h", "4h", "1d"];
@@ -23,9 +27,18 @@ export default function SignalsPage() {
   const defaultTf = useSettings((s) => s.defaultTf);
   const scanSize = useSettings((s) => s.scanSize);
   const set = useSettings((s) => s.set);
-  const { rows, scannedAt, timeframe, error, tracked } = useScan();
+  const { error, tracked: localTracked, timeframe: localTf } = useScan();
   const { run, progress } = useScanner();
-  const [tf, setTf] = useState<Timeframe>(SCAN_TFS.includes(timeframe) ? timeframe : defaultTf);
+  const [tf, setTf] = useState<Timeframe>(SCAN_TFS.includes(localTf) ? localTf : defaultTf);
+  const { rows, scannedAt, timeframe, source } = useSignalRows(tf);
+  const hasDb = useAuth((s) => !!s.health?.db);
+  const serverTrack = useQuery({
+    queryKey: ["server-track"],
+    queryFn: ({ signal }) => api<{ rows: TrackedSignal[] }>("/api/signals/track", { signal }),
+    enabled: hasDb,
+    staleTime: 60_000,
+  });
+  const tracked = serverTrack.data?.rows.length ? serverTrack.data.rows : localTracked;
   const [tab, setTab] = useState<"live" | "track">("live");
   const [onlyActive, setOnlyActive] = useState(false);
   const [dir, setDir] = useState<"all" | "long" | "short">("all");
@@ -50,14 +63,9 @@ export default function SignalsPage() {
   const activeCount = rows.filter((r) => r.signal.status === "ACTIVE").length;
 
   return (
-    <div className="mx-auto max-w-6xl space-y-4 p-4 lg:p-6">
+    <div className="mx-auto max-w-6xl space-y-5 p-4 lg:p-8">
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="flex items-center gap-2 text-xl font-bold">
-            <Zap size={20} className="text-accent" /> {t("signals.title")}
-          </h1>
-          <p className="mt-1 text-sm text-muted">{t("signals.subtitle")}</p>
-        </div>
+        <PageHeader icon={<Zap size={20} />} title={t("signals.title")} subtitle={t("signals.subtitle")} />
         <Segmented
           value={tab}
           onChange={setTab}
@@ -97,7 +105,7 @@ export default function SignalsPage() {
               </Button>
               {scannedAt && (
                 <span className="pb-2 text-xs text-muted">
-                  {t("signals.lastScan")}: {timeAgo(scannedAt, lang)} · {timeframe} · {rows.length} coin · {activeCount} {t("status.ACTIVE").toLowerCase()}
+                  {t("signals.lastScan")}: {timeAgo(scannedAt, lang)} · {timeframe} · {rows.length} coin · {activeCount} {t("status.ACTIVE").toLowerCase()} · <Badge tone={source === "server" ? "accent" : "neutral"}>{t(`signals.source.${source}`)}</Badge>
                 </span>
               )}
             </div>

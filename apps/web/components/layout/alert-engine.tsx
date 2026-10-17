@@ -7,6 +7,7 @@ import { closedOnly, getKlines } from "@cv/exchange";
 import { useLivePrices } from "@/lib/data/hooks";
 import { translate } from "@/lib/i18n";
 import { useAlerts, type Alert } from "@/lib/store/alerts";
+import { useAuth } from "@/lib/store/auth";
 import { useDrawings } from "@/lib/store/drawings";
 import { useScan, type TrackedSignal } from "@/lib/store/scan";
 import { evaluateOutcome } from "@cv/engine";
@@ -53,9 +54,13 @@ export function AlertEngine() {
   const alerts = useAlerts((s) => s.alerts);
   const lang = useSettings((s) => s.lang);
   const tr = (k: string) => translate(lang, k);
+  // Signed in with a live worker: the server evaluates alerts 24/7 and notifies via SSE/Telegram/push,
+  // so the browser must not fire duplicates.
+  const serverAlerting = useAuth((s) => !!s.user && !!s.health?.worker);
 
   // Price-based alerts on every live update.
   useEffect(() => {
+    if (serverAlerting) return;
     for (const a of alerts) {
       if (!a.active) continue;
       const p = prices[a.symbol];
@@ -85,6 +90,7 @@ export function AlertEngine() {
   // RSI alerts: poll once a minute.
   useEffect(() => {
     const run = async () => {
+      if (useAuth.getState().user && useAuth.getState().health?.worker) return;
       for (const a of useAlerts.getState().alerts) {
         if (!a.active || (a.type !== "rsi_above" && a.type !== "rsi_below")) continue;
         try {
@@ -108,6 +114,7 @@ export function AlertEngine() {
   useEffect(() => {
     if (!scannedAt || seen.current === scannedAt) return;
     seen.current = scannedAt;
+    if (serverAlerting) return;
     for (const a of useAlerts.getState().alerts) {
       if (!a.active || a.type !== "signal") continue;
       const row = rows.find((r) => r.symbol === a.symbol && r.signal.status === "ACTIVE");

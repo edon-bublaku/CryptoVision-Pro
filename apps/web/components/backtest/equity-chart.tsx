@@ -13,7 +13,7 @@ export function EquityChart({ equity, candles, initial }: { equity: { time: numb
   useEffect(() => {
     const el = ref.current;
     if (!el || equity.length === 0) return;
-    const c = { bg: cssVar("--panel", "#10141c"), fg: cssVar("--muted", "#8b95a8"), grid: cssVar("--line", "#1f2633"), accent: cssVar("--accent", "#4f8cff"), bear: cssVar("--bear", "#f0475a"), muted: cssVar("--faint", "#5d6678") };
+    const c = { bg: cssVar("--panel-solid", "#10141c"), fg: cssVar("--muted", "#8b95a8"), grid: cssVar("--line", "#1f2633"), accent: cssVar("--accent", "#4f8cff"), bear: cssVar("--bear", "#f0475a"), muted: cssVar("--faint", "#5d6678") };
     const chart = createChart(el, {
       autoSize: true,
       layout: { background: { type: ColorType.Solid, color: c.bg }, textColor: c.fg, fontSize: 11, attributionLogo: false, panes: { separatorColor: c.grid } },

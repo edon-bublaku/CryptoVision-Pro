@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Starts PostgreSQL 16 and Redis locally without Docker (data under .data/).
+# Starts PostgreSQL 16 and Redis locally without Docker (data in ../.cryptovision-data, next to the repo).
 # Prefer `docker compose up -d db redis` when Docker is available.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-DATA="$ROOT/.data"
+DATA="${CV_DATA_DIR:-$(dirname "$ROOT")/.cryptovision-data}"  # outside the repo so dev file-watchers ignore DB writes
 PGBIN="${PGBIN:-$(ls -d /usr/lib/postgresql/*/bin 2>/dev/null | sort -V | tail -1)}"
 PGPORT="${PGPORT:-5432}"
 mkdir -p "$DATA"

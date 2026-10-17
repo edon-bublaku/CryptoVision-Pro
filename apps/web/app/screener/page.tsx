@@ -5,22 +5,16 @@ import { baseAsset, formatCompact, formatPrice } from "@cv/core";
 import { ArrowDown, ArrowUp, Loader2, Plus, Radar, RefreshCw, Save, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { create } from "zustand";
-import { createJSONStorage, persist } from "zustand/middleware";
-import { Badge, Button, Card, CardHeader, Empty, Field, Input, Segmented, Select } from "@/components/ui/primitives";
+import { Badge, Button, Card, CardHeader, Empty, Field, Input, Segmented, Select, PageHeader } from "@/components/ui/primitives";
 import { ActionBadge, CoinIcon, Pct, Sparkline } from "@/components/ui/viz";
 import { useT } from "@/lib/i18n";
 import { useScan, type Snapshot } from "@/lib/store/scan";
 import { useScanner } from "@/lib/use-scanner";
+import { useSignalRows } from "@/lib/use-signal-rows";
+import { useSavedScans, type Metric, type Rule } from "@/lib/store/screens";
 import { cn } from "@/lib/utils";
 
-type Metric = keyof Omit<Snapshot, "spark">;
-type Op = ">" | "<";
-interface Rule {
-  metric: Metric;
-  op: Op;
-  value: number;
-}
+type Op = Rule["op"];
 
 const METRICS: { id: Metric; label: string; fmt?: (v: number) => string }[] = [
   { id: "rsi", label: "RSI(14)" },
@@ -49,20 +43,11 @@ const PRESETS: { key: string; rules: Rule[] }[] = [
   { key: "screener.preset.bearish", rules: [{ metric: "distEma200", op: "<", value: 0 }, { metric: "macdHist", op: "<", value: 0 }] },
 ];
 
-const useSavedScans = create<{ saved: { name: string; rules: Rule[] }[]; save: (name: string, rules: Rule[]) => void; remove: (name: string) => void }>()(
-  persist(
-    (set) => ({
-      saved: [],
-      save: (name, rules) => set((s) => ({ saved: [...s.saved.filter((x) => x.name !== name), { name, rules }] })),
-      remove: (name) => set((s) => ({ saved: s.saved.filter((x) => x.name !== name) })),
-    }),
-    { name: "cv.screens", storage: createJSONStorage(() => localStorage) },
-  ),
-);
 
 export default function ScreenerPage() {
   const t = useT();
-  const { rows, timeframe, scannedAt } = useScan();
+  const localTf = useScan((s) => s.timeframe);
+  const { rows, timeframe, scannedAt } = useSignalRows(localTf);
   const { run, progress } = useScanner();
   const { saved, save, remove } = useSavedScans();
   const [rules, setRules] = useState<Rule[]>(PRESETS[0]!.rules);
@@ -88,13 +73,8 @@ export default function ScreenerPage() {
   );
 
   return (
-    <div className="mx-auto max-w-[1400px] space-y-4 p-4 lg:p-6">
-      <div>
-        <h1 className="flex items-center gap-2 text-xl font-bold">
-          <Radar size={20} className="text-accent" /> {t("screener.title")}
-        </h1>
-        <p className="mt-1 text-sm text-muted">{t("screener.subtitle")}</p>
-      </div>
+    <div className="mx-auto max-w-[1400px] space-y-5 p-4 lg:p-8">
+      <PageHeader icon={<Radar size={20} />} title={t("screener.title")} subtitle={t("screener.subtitle")} />
 
       <div className="grid gap-4 lg:grid-cols-[340px_1fr]">
         <div className="space-y-4">

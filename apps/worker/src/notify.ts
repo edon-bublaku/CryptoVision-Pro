@@ -35,7 +35,7 @@ export async function deliver(db: Db, to: Recipient, ev: { alertId: string | nul
   await Promise.allSettled(tasks);
   const row = await logAlertEvent(db, { userId: to.userId, alertId: ev.alertId, symbol: ev.symbol, message: `${ev.title}: ${ev.message}`, channels: sent });
   await getRedis()
-    ?.publish(channels.user(to.userId), JSON.stringify({ id: row.id, symbol: ev.symbol, title: ev.title, message: ev.message, time: row.createdAt }))
+    ?.publish(channels.user(to.userId), JSON.stringify({ id: row.id, alertId: ev.alertId, symbol: ev.symbol, title: ev.title, message: ev.message, time: row.createdAt }))
     .catch(() => {});
   log.info({ userId: to.userId, symbol: ev.symbol, channels: sent }, "alert delivered");
 }

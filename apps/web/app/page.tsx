@@ -15,6 +15,8 @@ import { useT } from "@/lib/i18n";
 import { useScan } from "@/lib/store/scan";
 import { useSettings } from "@/lib/store/settings";
 import { useScanner } from "@/lib/use-scanner";
+import { useSignalRows } from "@/lib/use-signal-rows";
+import { useAuth } from "@/lib/store/auth";
 import { cn, timeAgo } from "@/lib/utils";
 
 export default function Dashboard() {
@@ -24,14 +26,16 @@ export default function Dashboard() {
   const { data: tickers, isLoading } = useTickers();
   const fg = useQuery({ queryKey: ["fng"], queryFn: ({ signal }) => getFearGreed(30, signal), staleTime: 30 * 60_000, retry: 1 });
   const global = useQuery({ queryKey: ["global"], queryFn: ({ signal }) => getGlobalMarket(signal), staleTime: 10 * 60_000, retry: 1 });
-  const { rows, scannedAt, timeframe } = useScan();
+  const localTf = useScan((s) => s.timeframe);
+  const { rows, scannedAt, timeframe, source } = useSignalRows(localTf);
   const { run, progress } = useScanner();
+  const authReady = useAuth((s) => s.ready);
 
-  // First visit: populate signals automatically.
+  // First visit: populate signals automatically (unless the server already has a scan).
   useEffect(() => {
-    if (!scannedAt && !progress) void run(defaultTf, 30);
+    if (authReady && !scannedAt && !progress) void run(defaultTf, 30);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [authReady]);
 
   const liquid = useMemo(() => (tickers ? universe(tickers, 100, 2_000_000) : []), [tickers]);
   const btc = tickers?.find((x) => x.symbol === "BTCUSDT");
@@ -109,7 +113,7 @@ export default function Dashboard() {
                 <Zap size={15} className="text-accent" /> {t("dash.topSignals")}
               </span>
             }
-            subtitle={scannedAt ? `${timeframe} · ${timeAgo(scannedAt, lang)}` : undefined}
+            subtitle={scannedAt ? `${timeframe} · ${timeAgo(scannedAt, lang)} · ${t(`signals.source.${source}`)}` : undefined}
             right={
               <div className="flex gap-2">
                 <Button size="xs" onClick={() => run(defaultTf)} disabled={!!progress}>
@@ -264,7 +268,7 @@ function Watchlist({ tickers }: { tickers?: Ticker[] }) {
   const t = useT();
   const watch = useSettings((s) => s.watchlist);
   const toggle = useSettings((s) => s.toggleWatch);
-  const rows = useScan((s) => s.rows);
+  const rows = useSignalRows(useScan((s) => s.timeframe)).rows;
   return (
     <Card>
       <CardHeader title={<span className="flex items-center gap-2"><Star size={15} className="text-warn" /> {t("dash.watchlist")}</span>} />

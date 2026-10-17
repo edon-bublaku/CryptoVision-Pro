@@ -4,7 +4,7 @@ import type { Timeframe } from "@cv/core";
 import { baseAsset, formatPrice } from "@cv/core";
 import { Bell, BellRing, CheckCheck, Plus, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Badge, Button, Card, CardHeader, Empty, Field, Input, Modal, Select, Switch } from "@/components/ui/primitives";
+import { Badge, Button, Card, CardHeader, Empty, Field, Input, Modal, Select, Switch, PageHeader } from "@/components/ui/primitives";
 import { CoinIcon } from "@/components/ui/viz";
 import { useTickers } from "@/lib/data/hooks";
 import { useT } from "@/lib/i18n";
@@ -27,14 +27,9 @@ export default function AlertsPage() {
   }, [markAllRead]);
 
   return (
-    <div className="mx-auto max-w-5xl space-y-4 p-4 lg:p-6">
+    <div className="mx-auto max-w-5xl space-y-5 p-4 lg:p-8">
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="flex items-center gap-2 text-xl font-bold">
-            <Bell size={20} className="text-accent" /> {t("alerts.title")}
-          </h1>
-          <p className="mt-1 text-sm text-muted">{t("alerts.subtitle")}</p>
-        </div>
+        <PageHeader icon={<Bell size={20} />} title={t("alerts.title")} subtitle={t("alerts.subtitle")} />
         <div className="flex gap-2">
           {perm !== "unsupported" &&
             (perm === "granted" ? (

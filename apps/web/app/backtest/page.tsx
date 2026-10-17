@@ -8,7 +8,7 @@ import { FlaskConical, Loader2, Play, ShieldAlert } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import { EquityChart } from "@/components/backtest/equity-chart";
 import { ChartPanel } from "@/components/chart/chart-panel";
-import { Badge, Button, Card, CardHeader, Empty, Field, Input, Select, Stat, Switch } from "@/components/ui/primitives";
+import { Badge, Button, Card, CardHeader, Empty, Field, Input, Select, Stat, Switch, PageHeader } from "@/components/ui/primitives";
 import { useTickers } from "@/lib/data/hooks";
 import { useT } from "@/lib/i18n";
 import { useSettings } from "@/lib/store/settings";
@@ -68,13 +68,8 @@ export default function BacktestPage() {
   })() : NaN;
 
   return (
-    <div className="mx-auto max-w-[1400px] space-y-4 p-4 lg:p-6">
-      <div>
-        <h1 className="flex items-center gap-2 text-xl font-bold">
-          <FlaskConical size={20} className="text-accent" /> {t("backtest.title")}
-        </h1>
-        <p className="mt-1 text-sm text-muted">{t("backtest.subtitle")}</p>
-      </div>
+    <div className="mx-auto max-w-[1400px] space-y-5 p-4 lg:p-8">
+      <PageHeader icon={<FlaskConical size={20} />} title={t("backtest.title")} subtitle={t("backtest.subtitle")} />
 
       <Card className="p-4">
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-8">

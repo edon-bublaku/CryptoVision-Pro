@@ -2,7 +2,7 @@ import type { Timeframe } from "@cv/core";
 import { TIMEFRAMES } from "@cv/core";
 import { closeDb, requireDb } from "@cv/db";
 import { runMigrations } from "@cv/db/migrate";
-import { env, log } from "@cv/server";
+import { env, getRedis, log } from "@cv/server";
 import { Queue, Worker, type Job } from "bullmq";
 import { Redis } from "ioredis";
 import { runRsiAlerts, startPriceAlerts } from "./alerts";
@@ -45,6 +45,11 @@ async function main() {
 
   const stopAlerts = startPriceAlerts(requireDb());
   const stops: (() => Promise<void> | void)[] = [stopAlerts];
+  // Heartbeat lets the web app know server-side alerting is live (so browsers stop duplicating it).
+  const beat = () => getRedis()?.set("cv:worker:heartbeat", String(Date.now()), "EX", 90).catch(() => {});
+  void beat();
+  const beatTimer = setInterval(beat, 30_000);
+  stops.push(() => clearInterval(beatTimer));
 
   if (e.REDIS_URL) {
     // BullMQ: repeatable jobs survive restarts and run exactly once across worker replicas.

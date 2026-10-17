@@ -7,7 +7,7 @@ import { useQueries } from "@tanstack/react-query";
 import { AlertTriangle, BriefcaseBusiness, Download, Plus, Trash2, X } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { Badge, Button, Card, CardHeader, Empty, Field, Input, Modal, Segmented, Select, Stat } from "@/components/ui/primitives";
+import { Badge, Button, Card, CardHeader, Empty, Field, Input, Modal, Segmented, Select, Stat, PageHeader } from "@/components/ui/primitives";
 import { CoinIcon, Pct } from "@/components/ui/viz";
 import { closedOnly, getKlines } from "@cv/exchange";
 import { useLivePrices, useTickers } from "@/lib/data/hooks";
@@ -44,14 +44,9 @@ export default function PortfolioPage() {
   const grossL = Math.abs(closed.filter((c) => c.pnl <= 0).reduce((s, c) => s + c.pnl, 0));
 
   return (
-    <div className="mx-auto max-w-[1400px] space-y-4 p-4 lg:p-6">
+    <div className="mx-auto max-w-[1400px] space-y-5 p-4 lg:p-8">
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="flex items-center gap-2 text-xl font-bold">
-            <BriefcaseBusiness size={20} className="text-accent" /> {t("portfolio.title")}
-          </h1>
-          <p className="mt-1 text-sm text-muted">{t("portfolio.subtitle")}</p>
-        </div>
+        <PageHeader icon={<BriefcaseBusiness size={20} />} title={t("portfolio.title")} subtitle={t("portfolio.subtitle")} />
         <Button variant="primary" size="md" onClick={() => setAdding(true)}>
           <Plus size={15} /> {t("portfolio.add")}
         </Button>

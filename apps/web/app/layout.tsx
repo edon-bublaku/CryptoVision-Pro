@@ -10,11 +10,13 @@ const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono-face", 
 export const metadata: Metadata = {
   title: { default: "CryptoVision Pro", template: "%s · CryptoVision Pro" },
   description: "Analizë profesionale e kriptovalutave: sinjale me konfluencë, plane tregtie me menaxhim rreziku, backtest dhe grafik me mjete vizatimi.",
-  icons: { icon: "/icon.svg" },
+  icons: { icon: "/icon.svg", apple: "/apple-touch-icon.png" },
+  appleWebApp: { capable: true, title: "CryptoVision", statusBarStyle: "black-translucent" },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0a0d13",
+  themeColor: "#060911",
+  viewportFit: "cover",
   width: "device-width",
   initialScale: 1,
 };

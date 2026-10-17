@@ -18,8 +18,11 @@ export async function replaceAlerts(db: Db, userId: string, input: AlertInput[])
     if (remove.length) await tx.delete(alerts).where(and(eq(alerts.userId, userId), inArray(alerts.id, remove)));
     for (const a of input) {
       const prev = byId.get(a.id);
-      const changedLevel = prev && (prev.value !== a.value || prev.type !== a.type);
-      const row = { ...a, userId, createdAt: a.createdAt ?? prev?.createdAt ?? new Date(), lastSide: changedLevel || !a.active ? null : (prev?.lastSide ?? null), triggeredAt: prev?.triggeredAt ?? null };
+      const changedLevel = !!prev && (prev.value !== a.value || prev.type !== a.type);
+      // A one-shot alert the worker already fired stays off, even if a stale client still says active.
+      const fired = !!prev && prev.once && !prev.active && !!prev.triggeredAt && !changedLevel;
+      const active = fired ? false : a.active;
+      const row = { ...a, active, userId, createdAt: a.createdAt ?? prev?.createdAt ?? new Date(), lastSide: changedLevel || !active ? null : (prev?.lastSide ?? null), triggeredAt: changedLevel ? null : (prev?.triggeredAt ?? null) };
       await tx.insert(alerts).values(row).onConflictDoUpdate({ target: alerts.id, set: row, setWhere: eq(alerts.userId, userId) });
     }
   });
