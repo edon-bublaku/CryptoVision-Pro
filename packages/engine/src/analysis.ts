@@ -2,7 +2,7 @@ import type { BacktestSummary, Candle, Timeframe } from "@cv/core";
 import { lastFinite, percentileRank } from "@cv/core";
 import { runBacktest, type BacktestResult } from "@cv/backtest";
 import { analyze, trendScore, type Analysis } from "@cv/signals";
-import type { Snapshot } from "./store/scan";
+import type { Snapshot } from "./types";
 
 /** A strategy must have earned its place on this coin/timeframe before its signals go ACTIVE. */
 export const GATE = { minTrades: 6, minProfitFactor: 1.2 } as const;
@@ -22,7 +22,7 @@ export interface FullAnalysis {
  * backtest stats of its own strategy and is downgraded to WATCH when that strategy has not
  * been profitable on this coin.
  */
-export function fullAnalysis(input: { symbol: string; timeframe: Timeframe; candles: Candle[]; htfCandles?: Candle[]; fearGreed?: number }): FullAnalysis | null {
+export function fullAnalysis(input: { symbol: string; timeframe: Timeframe; candles: Candle[]; htfCandles?: Candle[]; fearGreed?: number; derivativesBias?: number }): FullAnalysis | null {
   const first = analyze(input);
   if (!first) return null;
   const backtest = runBacktest(input.candles, { timeframe: input.timeframe });

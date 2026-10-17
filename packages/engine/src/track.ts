@@ -1,4 +1,4 @@
-import type { TrackedSignal } from "./store/scan";
+import type { TrackedSignal } from "./types";
 
 const RANK: TrackedSignal["outcome"][] = ["pending", "open", "tp1", "tp2", "tp3"];
 

@@ -3,13 +3,13 @@
 import { formatPrice, lastFinite, TIMEFRAME_SECONDS, type Timeframe } from "@cv/core";
 import { rsi } from "@cv/indicators";
 import { useEffect, useRef } from "react";
-import { closedOnly, getKlines } from "@/lib/data/binance";
+import { closedOnly, getKlines } from "@cv/exchange";
 import { useLivePrices } from "@/lib/data/hooks";
 import { translate } from "@/lib/i18n";
 import { useAlerts, type Alert } from "@/lib/store/alerts";
 import { useDrawings } from "@/lib/store/drawings";
 import { useScan, type TrackedSignal } from "@/lib/store/scan";
-import { evaluateOutcome } from "@/lib/track";
+import { evaluateOutcome } from "@cv/engine";
 import { useSettings } from "@/lib/store/settings";
 import { drawingLevelAt } from "../chart/chart-tools";
 import { toast } from "../ui/toast";

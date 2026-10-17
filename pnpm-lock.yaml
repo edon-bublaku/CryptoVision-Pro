@@ -45,6 +45,12 @@ importers:
       '@cv/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@cv/engine':
+        specifier: workspace:*
+        version: link:../../packages/engine
+      '@cv/exchange':
+        specifier: workspace:*
+        version: link:../../packages/exchange
       '@cv/indicators':
         specifier: workspace:*
         version: link:../../packages/indicators
@@ -123,6 +129,33 @@ importers:
         version: link:../signals
 
   packages/core: {}
+
+  packages/engine:
+    dependencies:
+      '@cv/backtest':
+        specifier: workspace:*
+        version: link:../backtest
+      '@cv/core':
+        specifier: workspace:*
+        version: link:../core
+      '@cv/indicators':
+        specifier: workspace:*
+        version: link:../indicators
+      '@cv/risk':
+        specifier: workspace:*
+        version: link:../risk
+      '@cv/signals':
+        specifier: workspace:*
+        version: link:../signals
+
+  packages/exchange:
+    dependencies:
+      '@cv/core':
+        specifier: workspace:*
+        version: link:../core
+      zod:
+        specifier: ^4.6.7
+        version: 4.6.7
 
   packages/indicators:
     dependencies:

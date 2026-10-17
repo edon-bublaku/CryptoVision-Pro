@@ -2,8 +2,8 @@
 
 import type { Timeframe } from "@cv/core";
 import { useCallback, useRef } from "react";
-import { getFearGreed } from "./data/market";
-import { getTickers24h, universe } from "./data/binance";
+import { getFearGreed } from "@cv/exchange";
+import { getTickers24h, universe } from "@cv/exchange";
 import { useScan } from "./store/scan";
 import { useSettings } from "./store/settings";
 import type { ScanMessage, ScanRequest } from "../workers/scan.worker";

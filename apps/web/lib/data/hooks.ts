@@ -4,8 +4,8 @@ import type { Ticker } from "@cv/core";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { create } from "zustand";
-import { getTickers24h } from "./binance";
-import { binanceStream, type MiniTicker, type StreamStatus } from "./stream";
+import { getTickers24h } from "@cv/exchange";
+import { binanceStream, type MiniTicker, type StreamStatus } from "@cv/exchange";
 
 /** Live prices from the all-market mini-ticker stream, merged into one shared store. */
 interface LiveState {

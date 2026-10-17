@@ -7,7 +7,7 @@ import { AlertTriangle, ShieldCheck, ShieldAlert } from "lucide-react";
 import { useT } from "@/lib/i18n";
 import { useSettings } from "@/lib/store/settings";
 import { cn } from "@/lib/utils";
-import { GATE } from "@/lib/analysis";
+import { GATE } from "@cv/engine";
 
 export function PlanTable({ signal, compact }: { signal: Signal; compact?: boolean }) {
   const t = useT();

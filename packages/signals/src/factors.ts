@@ -9,6 +9,8 @@ export interface FactorEnv {
   htfScore?: number;
   /** Fear & Greed index 0..100, if known. */
   fearGreed?: number;
+  /** Contrarian derivatives positioning bias -1..1 (funding, long/short, OI), live only. */
+  derivativesBias?: number;
   /** Nearest support / resistance known at this bar. */
   support?: number;
   resistance?: number;
@@ -300,6 +302,16 @@ export const FACTORS: FactorDef[] = [
       // Contrarian: extreme fear has historically been a better time to accumulate than extreme greed.
       const s = fg <= 20 ? 0.6 : fg <= 35 ? 0.25 : fg >= 80 ? -0.6 : fg >= 65 ? -0.25 : 0;
       return { score: s, label: "factor.fear_greed", explanation: `Fear & Greed ${fg}` };
+    },
+  },
+  {
+    id: "derivatives",
+    category: "derivatives",
+    weight: 0.6,
+    fn: (_ctx, _i, env) => {
+      const b = env.derivativesBias;
+      if (b === undefined || !Number.isFinite(b)) return null;
+      return { score: b, label: "factor.derivatives", explanation: `Funding / L-S bias ${b >= 0 ? "+" : ""}${b.toFixed(2)}` };
     },
   },
 ];

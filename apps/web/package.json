@@ -12,6 +12,8 @@
   "dependencies": {
     "@cv/backtest": "workspace:*",
     "@cv/core": "workspace:*",
+    "@cv/engine": "workspace:*",
+    "@cv/exchange": "workspace:*",
     "@cv/indicators": "workspace:*",
     "@cv/risk": "workspace:*",
     "@cv/signals": "workspace:*",

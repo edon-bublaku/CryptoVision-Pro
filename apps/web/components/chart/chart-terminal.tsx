@@ -5,7 +5,7 @@ import { TIMEFRAMES } from "@cv/core";
 import { Camera, ChevronDown, Columns2, Grid2x2, Layers, PanelRight, Pause, Play, Redo2, Rewind, SkipBack, SkipForward, Square, Star, Undo2, Wand2, X } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import type { FullAnalysis } from "@/lib/analysis";
+import type { FullAnalysis } from "@cv/engine";
 import { INDICATORS, OVERLAYS } from "@/lib/chart/indicators";
 import { useT } from "@/lib/i18n";
 import { useChartUi } from "@/lib/store/chart-ui";

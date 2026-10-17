@@ -2,8 +2,8 @@
 
 import type { Candle, Timeframe } from "@cv/core";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { getKlines } from "../data/binance";
-import { binanceStream, type KlineEvent } from "../data/stream";
+import { getKlines } from "@cv/exchange";
+import { binanceStream, type KlineEvent } from "@cv/exchange";
 
 export interface CandleFeed {
   candles: Candle[];

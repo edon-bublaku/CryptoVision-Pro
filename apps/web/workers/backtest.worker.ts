@@ -1,7 +1,7 @@
 /// <reference lib="webworker" />
 import type { Candle, Timeframe } from "@cv/core";
 import { runBacktest, type BacktestConfig, type BacktestResult } from "@cv/backtest";
-import { closedOnly, getKlinesDeep } from "../lib/data/binance";
+import { closedOnly, getKlinesDeep } from "@cv/exchange";
 
 export interface BacktestRequest {
   symbol: string;

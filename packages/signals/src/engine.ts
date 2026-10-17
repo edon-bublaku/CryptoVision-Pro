@@ -10,6 +10,7 @@ import { STRATEGIES, type Setup, type StrategyId } from "./strategies";
 export interface EvaluateOptions {
   htfScore?: number;
   fearGreed?: number;
+  derivativesBias?: number;
   risk?: Partial<RiskConfig>;
   /** Restrict to these strategies (backtest of a single strategy). */
   strategies?: StrategyId[];
@@ -56,7 +57,7 @@ export function evaluateAt(ctx: SeriesContext, i: number, opts: EvaluateOptions 
   const close = ctx.close[i]!;
   const levels = opts.levels ?? supportResistance(ctx.candles.slice(Math.max(0, i - 300), i + 1));
   const { support, resistance } = nearestLevels(levels, close);
-  const env: FactorEnv = { regime: regime.regime, htfScore: opts.htfScore, fearGreed: opts.fearGreed, support, resistance };
+  const env: FactorEnv = { regime: regime.regime, htfScore: opts.htfScore, fearGreed: opts.fearGreed, derivativesBias: opts.derivativesBias, support, resistance };
   const factors = evaluateFactors(ctx, i, env);
   const rawScore = aggregate(factors);
   const score = Math.round(50 + 50 * rawScore);
@@ -86,6 +87,7 @@ export interface AnalyzeInput {
   candles: readonly Candle[];
   htfCandles?: readonly Candle[];
   fearGreed?: number;
+  derivativesBias?: number;
   risk?: Partial<RiskConfig>;
   backtest?: BacktestSummary;
 }
@@ -111,7 +113,7 @@ export function analyze(input: AnalyzeInput): Analysis | null {
   const i = candles.length - 1;
   const htfScore = htfTrendScore(input.htfCandles);
   const levels = supportResistance(candles.slice(-300));
-  const ev = evaluateAt(ctx, i, { htfScore, fearGreed: input.fearGreed, risk: input.risk, levels });
+  const ev = evaluateAt(ctx, i, { htfScore, fearGreed: input.fearGreed, derivativesBias: input.derivativesBias, risk: input.risk, levels });
   const close = ctx.close[i]!;
   const atrV = ctx.atr[i]!;
   const htfBias = htfScore === undefined ? "NEUTRAL" : htfScore > 0.2 ? "BULLISH" : htfScore < -0.2 ? "BEARISH" : "NEUTRAL";

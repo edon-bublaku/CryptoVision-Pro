@@ -1,8 +1,8 @@
 /// <reference lib="webworker" />
 import type { Timeframe } from "@cv/core";
 import { HIGHER_TIMEFRAME } from "@cv/core";
-import { fullAnalysis, snapshotOf } from "../lib/analysis";
-import { closedOnly, getKlines, mapLimit } from "../lib/data/binance";
+import { fullAnalysis, snapshotOf } from "@cv/engine";
+import { closedOnly, getKlines, mapLimit } from "@cv/exchange";
 import type { ScanRow } from "../lib/store/scan";
 
 export interface ScanRequest {

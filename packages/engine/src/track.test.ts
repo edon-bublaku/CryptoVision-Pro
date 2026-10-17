@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Signal } from "@cv/core";
-import type { TrackedSignal } from "./store/scan";
+import type { TrackedSignal } from "./types";
 import { evaluateOutcome } from "./track";
 
 const signal = {
