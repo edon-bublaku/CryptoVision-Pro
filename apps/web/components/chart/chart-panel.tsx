@@ -38,6 +38,9 @@ import { futureTimes, INDICATORS } from "@/lib/chart/indicators";
 import { useCandles } from "@/lib/chart/use-candles";
 import { closedOnly, getKlines } from "@cv/exchange";
 import { getFearGreed } from "@cv/exchange";
+import { useDerivatives } from "@/lib/data/derivatives";
+import { usePortfolio } from "@/lib/store/portfolio";
+import { useAlerts } from "@/lib/store/alerts";
 import { useT } from "@/lib/i18n";
 import { useChartUi } from "@/lib/store/chart-ui";
 import { useDrawings } from "@/lib/store/drawings";
@@ -107,6 +110,9 @@ export function ChartPanel(props: Props) {
     staleTime: 5 * 60_000,
   });
   const fg = useQuery({ queryKey: ["fng"], queryFn: ({ signal }) => getFearGreed(30, signal), staleTime: 30 * 60_000, retry: 1 });
+  const deriv = useDerivatives(symbol);
+  const positions = usePortfolio((s) => s.positions);
+  const alerts = useAlerts((s) => s.alerts);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
@@ -169,7 +175,7 @@ export function ChartPanel(props: Props) {
     overlay.update({ colors: { bull: c.bull, bear: c.bear, muted: c.muted } });
     main.attachPrimitive(overlay);
     overlayRef.current = overlay;
-    const layer = new DrawingsPrimitive(mapper);
+    const layer = new DrawingsPrimitive(mapper, () => candlesRef.current);
     main.attachPrimitive(layer);
     layerRef.current = layer;
     markersRef.current = createSeriesMarkers(main, []);
@@ -386,12 +392,20 @@ export function ChartPanel(props: Props) {
     }
     const id = setTimeout(() => {
       const slice = closed.slice(-1000);
-      const res = fullAnalysis({ symbol, timeframe: tf, candles: slice, htfCandles: replay.active ? undefined : htfQuery.data, fearGreed: fg.data?.[fg.data.length - 1]?.value });
+      const res = fullAnalysis({
+        symbol,
+        timeframe: tf,
+        candles: slice,
+        htfCandles: replay.active ? undefined : htfQuery.data,
+        fearGreed: fg.data?.[fg.data.length - 1]?.value,
+        // Live-only factor: never applied in replay, where it would leak today's positioning.
+        derivativesBias: replay.active ? undefined : (deriv.data?.bias ?? undefined),
+      });
       setAnalysisState(res);
     }, 30);
     return () => clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [closed, htfQuery.data, fg.data, symbol, tf]);
+  }, [closed, htfQuery.data, fg.data, deriv.data?.bias, symbol, tf]);
 
   useEffect(() => {
     if (active) props.onAnalysis?.(analysisState, closed);
@@ -483,6 +497,23 @@ export function ChartPanel(props: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [analysisState, prefs.overlays.join(","), chartKey, props.trades]);
 
+  // ---------- portfolio positions & price alerts as lines ----------
+  const userLines = useRef<IPriceLine[]>([]);
+  useEffect(() => {
+    const main = mainRef.current;
+    if (!main) return;
+    for (const pl of userLines.current) main.removePriceLine(pl);
+    userLines.current = [];
+    const c = themeColors();
+    for (const p of positions.filter((x) => x.symbol === symbol)) {
+      userLines.current.push(main.createPriceLine({ price: p.entry, color: c.accent, lineWidth: 2, lineStyle: LineStyle.Solid, axisLabelVisible: true, title: `${p.side} ${p.quantity.toPrecision(3)}` }));
+      if (p.stopLoss !== undefined) userLines.current.push(main.createPriceLine({ price: p.stopLoss, color: c.bear, lineWidth: 1, lineStyle: LineStyle.Dashed, axisLabelVisible: true, title: "SL" }));
+      if (p.takeProfit !== undefined) userLines.current.push(main.createPriceLine({ price: p.takeProfit, color: c.bull, lineWidth: 1, lineStyle: LineStyle.Dashed, axisLabelVisible: true, title: "TP" }));
+    }
+    for (const a of alerts.filter((x) => x.symbol === symbol && x.active && (x.type === "price_above" || x.type === "price_below")))
+      userLines.current.push(main.createPriceLine({ price: a.value, color: c.warn, lineWidth: 1, lineStyle: LineStyle.SparseDotted, axisLabelVisible: true, title: `🔔 ${a.type === "price_above" ? "≥" : "≤"}` }));
+  }, [positions, alerts, symbol, chartKey]);
+
   // ---------- drawings ----------
   useEffect(() => {
     const list = drawingsHidden ? [] : (drawings ?? []);
@@ -526,7 +557,7 @@ export function ChartPanel(props: Props) {
           st.select(copy.id);
         }
       } else if (e.altKey && !mod) {
-        const map: Record<string, Parameters<typeof setTool>[0]> = { t: "trendline", h: "hline", v: "vline", f: "fib", r: "rect", c: "channel", l: "long", s: "short", m: "measure", p: "path", b: "brush", x: "text", a: "arrow", e: "ray" };
+        const map: Record<string, Parameters<typeof setTool>[0]> = { t: "trendline", h: "hline", v: "vline", f: "fib", r: "rect", c: "channel", l: "long", s: "short", m: "measure", p: "path", b: "brush", x: "text", a: "arrow", e: "ray", g: "regression" };
         const next = map[e.key.toLowerCase()] ?? map[e.code.replace("Key", "").toLowerCase()];
         if (next) {
           e.preventDefault();

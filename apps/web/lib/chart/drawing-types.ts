@@ -20,7 +20,18 @@ export type DrawingType =
   | "arrow"
   | "brush"
   | "text"
-  | "path";
+  | "path"
+  | "regression"
+  | "fibfan"
+  | "fibtime"
+  | "gannfan"
+  | "xabcd"
+  | "elliott"
+  | "abc"
+  | "headshoulders"
+  | "callout"
+  | "pricelabel"
+  | "daterange";
 
 export type Tool = DrawingType | "cursor" | "crosshair";
 
@@ -78,7 +89,21 @@ export const POINTS_REQUIRED: Record<DrawingType, number> = {
   brush: 0,
   text: 1,
   path: 0,
+  regression: 2,
+  fibfan: 2,
+  fibtime: 2,
+  gannfan: 2,
+  xabcd: 5,
+  elliott: 6,
+  abc: 4,
+  headshoulders: 7,
+  callout: 2,
+  pricelabel: 1,
+  daterange: 2,
 };
+
+/** Tools whose text is edited right after placing them. */
+export const TEXT_TOOLS: DrawingType[] = ["text", "callout"];
 
 export const DEFAULT_FIB_LEVELS = [0, 0.236, 0.382, 0.5, 0.618, 0.786, 1, 1.618, 2.618];
 export const DEFAULT_FIBEXT_LEVELS = [0, 0.618, 1, 1.272, 1.618, 2, 2.618];
@@ -111,6 +136,27 @@ export function defaultStyle(type: DrawingType): DrawingStyle {
       return { ...base, color: "#f472b6" };
     case "pitchfork":
       return { ...base, color: "#22d3ee", width: 1 };
+    case "regression":
+      return { ...base, color: "#7b8cff", width: 1.5, fill: true, fillOpacity: 0.07 };
+    case "fibfan":
+      return { ...base, color: "#f5a524", width: 1, fibLevels: [0.236, 0.382, 0.5, 0.618, 0.786] };
+    case "fibtime":
+      return { ...base, color: "#a78bfa", width: 1, dash: "dashed" };
+    case "gannfan":
+      return { ...base, color: "#34d399", width: 1 };
+    case "xabcd":
+      return { ...base, color: "#22d3ee", width: 1.5, fill: true, fillOpacity: 0.1 };
+    case "elliott":
+    case "abc":
+      return { ...base, color: "#f472b6", width: 1.5 };
+    case "headshoulders":
+      return { ...base, color: "#f5a524", width: 1.5, fill: true, fillOpacity: 0.08 };
+    case "callout":
+      return { ...base, color: "#7b8cff", text: "Shënim", fontSize: 13, fill: true, fillOpacity: 0.9 };
+    case "pricelabel":
+      return { ...base, color: "#22d3ee", fontSize: 12 };
+    case "daterange":
+      return { ...base, color: "#7b8cff", fill: true, fillOpacity: 0.08, width: 1 };
     default:
       return base;
   }

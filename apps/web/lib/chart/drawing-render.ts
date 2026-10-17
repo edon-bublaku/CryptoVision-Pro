@@ -95,7 +95,52 @@ export interface RenderEnv {
   mapper: CoordMapper;
   width: number;
   height: number;
+  /** Closes in the chart (for the regression channel). */
+  candles?: () => readonly { time: number; close: number }[];
 }
+
+/** Least-squares line over closes between two times, with ±2σ of residuals. */
+export function regressionOf(candles: readonly { time: number; close: number }[], t0: number, t1: number): { a: DrawingPoint; b: DrawingPoint; sigma: number } | null {
+  const from = Math.min(t0, t1);
+  const to = Math.max(t0, t1);
+  const pts = candles.filter((c) => c.time >= from && c.time <= to);
+  if (pts.length < 3) return null;
+  const n = pts.length;
+  let sx = 0;
+  let sy = 0;
+  let sxx = 0;
+  let sxy = 0;
+  pts.forEach((c, i) => {
+    sx += i;
+    sy += c.close;
+    sxx += i * i;
+    sxy += i * c.close;
+  });
+  const slope = (n * sxy - sx * sy) / (n * sxx - sx * sx || 1);
+  const icpt = (sy - slope * sx) / n;
+  let ss = 0;
+  pts.forEach((c, i) => (ss += (c.close - (icpt + slope * i)) ** 2));
+  return { a: { time: pts[0]!.time, price: icpt }, b: { time: pts[n - 1]!.time, price: icpt + slope * (n - 1) }, sigma: Math.sqrt(ss / n) };
+}
+
+const FIB_TIME = [0, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89];
+const GANN = [
+  [1, 8],
+  [1, 4],
+  [1, 3],
+  [1, 2],
+  [1, 1],
+  [2, 1],
+  [3, 1],
+  [4, 1],
+  [8, 1],
+] as const;
+const WAVE_LABELS: Record<string, string[]> = {
+  xabcd: ["X", "A", "B", "C", "D"],
+  elliott: ["0", "1", "2", "3", "4", "5"],
+  abc: ["0", "A", "B", "C"],
+  headshoulders: ["", "LS", "", "H", "", "RS", ""],
+};
 
 /** Pixel points of a drawing, or null if any point can't be mapped (e.g. series not ready). */
 export function toPixels(d: Drawing, env: RenderEnv): P[] | null {
@@ -142,6 +187,10 @@ function segments(d: Drawing, px: P[], env: RenderEnv): [P, P][] {
       const b2 = { x: b.x, y: b.y + off };
       return [extend(a, b, w, h, !!d.style.extendLeft, !!d.style.extendRight), extend(a2, b2, w, h, !!d.style.extendLeft, !!d.style.extendRight)];
     }
+    case "xabcd":
+    case "elliott":
+    case "abc":
+    case "headshoulders":
     case "triangle":
     case "path":
     case "brush": {
@@ -149,6 +198,42 @@ function segments(d: Drawing, px: P[], env: RenderEnv): [P, P][] {
       for (let i = 1; i < px.length; i++) segs.push([px[i - 1]!, px[i]!]);
       if (d.type === "triangle" && px.length === 3) segs.push([px[2]!, px[0]!]);
       return segs;
+    }
+    case "callout":
+      return a && b ? [[a, b]] : [];
+    case "gannfan": {
+      if (!a || !b) return [];
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      return GANN.map(([px, py]) => extend(a, { x: a.x + dx * px, y: a.y + dy * py }, w, h, false, true));
+    }
+    case "fibfan": {
+      if (!a || !b) return [];
+      const levels = d.style.fibLevels ?? [0.382, 0.5, 0.618];
+      return [extend(a, b, w, h, false, true), ...levels.map((r) => extend(a, { x: b.x, y: b.y + (a.y - b.y) * r }, w, h, false, true))];
+    }
+    case "fibtime": {
+      if (!a || !b || d.points.length < 2) return [];
+      const [p0, p1] = d.points as [DrawingPoint, DrawingPoint];
+      const step = p1.time - p0.time;
+      const out: [P, P][] = [];
+      for (const k of FIB_TIME) {
+        const x = env.mapper.timeToX(p0.time + step * k);
+        if (x !== null && x >= 0 && x <= w) out.push([{ x, y: 0 }, { x, y: h }]);
+      }
+      return out;
+    }
+    case "regression": {
+      const reg = d.points.length >= 2 && env.candles ? regressionOf(env.candles(), d.points[0]!.time, d.points[1]!.time) : null;
+      if (!reg) return a && b ? [[a, b]] : [];
+      const line = (off: number): [P, P] | null => {
+        const x1 = env.mapper.timeToX(reg.a.time);
+        const x2 = env.mapper.timeToX(reg.b.time);
+        const y1 = env.mapper.priceToY(reg.a.price + off);
+        const y2 = env.mapper.priceToY(reg.b.price + off);
+        return x1 === null || x2 === null || y1 === null || y2 === null ? null : extend({ x: x1, y: y1 }, { x: x2, y: y2 }, w, h, false, !!d.style.extendRight);
+      };
+      return [line(0), line(2 * reg.sigma), line(-2 * reg.sigma)].filter((x): x is [P, P] => !!x);
     }
     case "pitchfork": {
       if (!a || !b) return [];
@@ -245,6 +330,19 @@ export function hitTest(d: Drawing, x: number, y: number, env: RenderEnv, select
       const fs = d.style.fontSize ?? 14;
       const w = (d.style.text ?? "").length * fs * 0.6 + 12;
       return x >= a.x - 6 && x <= a.x + w && y >= a.y - fs && y <= a.y + fs ? { kind: "body" } : null;
+    }
+    case "callout": {
+      if (!b) return null;
+      const fs = d.style.fontSize ?? 13;
+      const w = (d.style.text ?? "").length * fs * 0.6 + 20;
+      return x >= b.x - 4 && x <= b.x + w && y >= b.y - fs - 6 && y <= b.y + 8 ? { kind: "body" } : null;
+    }
+    case "pricelabel":
+      return a && x >= a.x && x <= a.x + 90 && y >= a.y - 22 && y <= a.y ? { kind: "body" } : null;
+    case "daterange": {
+      if (!a || !b) return null;
+      const inX = x >= Math.min(a.x, b.x) && x <= Math.max(a.x, b.x);
+      return inX && y >= Math.min(a.y, b.y) - HIT_TOL && y <= Math.max(a.y, b.y) + HIT_TOL ? { kind: "body" } : null;
     }
     default:
       return null;
@@ -428,6 +526,164 @@ function drawOne(ctx: Ctx, d: Drawing, env: RenderEnv, selected: boolean, hovere
         label(ctx, `${dp >= 0 ? "+" : ""}${formatPrice(dp)} (${pct >= 0 ? "+" : ""}${pct.toFixed(2)}%) · ${bars} bars · ${dur}`, (a.x + b.x) / 2, Math.max(a.y, b.y) + 14, col, { align: "center", bg: col, fg: "#fff", font: 10 });
       }
       break;
+    case "xabcd":
+    case "elliott":
+    case "abc":
+    case "headshoulders": {
+      if (st.fill && d.type === "xabcd" && px.length >= 3) {
+        ctx.fillStyle = fill;
+        for (const tri of [px.slice(0, 3), px.slice(2, 5)]) {
+          if (tri.length < 3) continue;
+          ctx.beginPath();
+          ctx.moveTo(tri[0]!.x, tri[0]!.y);
+          ctx.lineTo(tri[1]!.x, tri[1]!.y);
+          ctx.lineTo(tri[2]!.x, tri[2]!.y);
+          ctx.closePath();
+          ctx.fill();
+        }
+      }
+      if (d.type === "headshoulders" && px.length >= 5) {
+        // Neckline through the two troughs, extended.
+        const [, , t1, , t2] = px;
+        ctx.save();
+        ctx.setLineDash([5, 4]);
+        const [n1, n2] = extend(t1!, t2!, env.width, env.height, true, true);
+        line(ctx, n1, n2);
+        ctx.restore();
+      }
+      for (const [p1, p2] of segments(d, px, env)) line(ctx, p1, p2);
+      const labels = WAVE_LABELS[d.type] ?? [];
+      px.forEach((p, i) => {
+        const lbl = labels[i];
+        if (!lbl) return;
+        const prev = px[i - 1];
+        const next = px[i + 1];
+        const isHigh = (prev ? p.y <= prev.y : true) && (next ? p.y <= next.y : true);
+        label(ctx, d.type === "elliott" || d.type === "abc" ? `(${lbl})` : lbl, p.x, p.y + (isHigh ? -14 : 14), st.color, { align: "center", font: 11 });
+      });
+      if (d.type === "xabcd" && d.points.length >= 5) {
+        const [X, A, B, C, D] = d.points as DrawingPoint[];
+        const r = (num: number, den: number) => (den === 0 ? "—" : Math.abs(num / den).toFixed(3));
+        const tags: [P, P, string][] = [
+          [px[0]!, px[2]!, r(B!.price - A!.price, A!.price - X!.price)],
+          [px[1]!, px[3]!, r(C!.price - B!.price, B!.price - A!.price)],
+          [px[2]!, px[4]!, r(D!.price - C!.price, C!.price - B!.price)],
+          [px[0]!, px[4]!, r(D!.price - A!.price, A!.price - X!.price)],
+        ];
+        ctx.save();
+        ctx.setLineDash([3, 3]);
+        ctx.globalAlpha = 0.6;
+        for (const [p1, p2, txt] of tags) {
+          line(ctx, p1, p2);
+          label(ctx, txt, (p1.x + p2.x) / 2, (p1.y + p2.y) / 2, st.color, { align: "center", bg: "rgba(10,14,24,0.85)", font: 10 });
+        }
+        ctx.restore();
+      }
+      if (d.type === "elliott" && px.length < 6 && px.length > 1) {
+        /* in-progress preview: lines only */
+      }
+      break;
+    }
+    case "gannfan":
+    case "fibfan": {
+      const segs = segments(d, px, env);
+      segs.forEach(([p1, p2], i) => {
+        ctx.globalAlpha = d.type === "gannfan" && i === 4 ? 1 : 0.75;
+        line(ctx, p1, p2);
+      });
+      ctx.globalAlpha = 1;
+      if (d.type === "gannfan") GANN.forEach(([gx, gy], i) => segs[i] && label(ctx, `${gx}×${gy}`, segs[i]![0].x + (segs[i]![1].x - segs[i]![0].x) * 0.08, segs[i]![0].y + (segs[i]![1].y - segs[i]![0].y) * 0.08, st.color, { font: 9 }));
+      if (d.type === "fibfan") (st.fibLevels ?? []).forEach((r, i) => segs[i + 1] && label(ctx, String(r), segs[i + 1]![0].x + (segs[i + 1]![1].x - segs[i + 1]![0].x) * 0.1, segs[i + 1]![0].y + (segs[i + 1]![1].y - segs[i + 1]![0].y) * 0.1, st.color, { font: 9 }));
+      break;
+    }
+    case "fibtime": {
+      const segs = segments(d, px, env);
+      segs.forEach(([p1, p2], i) => {
+        line(ctx, p1, p2);
+        label(ctx, String(FIB_TIME[i] ?? ""), p1.x + 3, 12, st.color, { font: 10 });
+      });
+      break;
+    }
+    case "regression": {
+      const segs = segments(d, px, env);
+      if (segs.length === 3 && st.fill) {
+        const [, up, dn] = segs as [[P, P], [P, P], [P, P]];
+        ctx.fillStyle = fill;
+        ctx.beginPath();
+        ctx.moveTo(up[0].x, up[0].y);
+        ctx.lineTo(up[1].x, up[1].y);
+        ctx.lineTo(dn[1].x, dn[1].y);
+        ctx.lineTo(dn[0].x, dn[0].y);
+        ctx.closePath();
+        ctx.fill();
+      }
+      segs.forEach(([p1, p2], i) => {
+        ctx.save();
+        if (i > 0) ctx.setLineDash([5, 4]);
+        line(ctx, p1, p2);
+        ctx.restore();
+      });
+      if (segs.length === 3) label(ctx, "±2σ", segs[1]![1].x - 4, segs[1]![1].y - 10, st.color, { align: "right", font: 10 });
+      break;
+    }
+    case "callout":
+      if (a && b) {
+        const fs = st.fontSize ?? 13;
+        ctx.setLineDash([]);
+        line(ctx, a, b);
+        ctx.beginPath();
+        ctx.arc(a.x, a.y, 3, 0, Math.PI * 2);
+        ctx.fillStyle = st.color;
+        ctx.fill();
+        ctx.font = `600 ${fs}px var(--font-inter), system-ui, sans-serif`;
+        const tw = ctx.measureText(st.text ?? "").width;
+        ctx.fillStyle = withAlpha(st.color, st.fillOpacity);
+        ctx.beginPath();
+        ctx.roundRect(b.x - 4, b.y - fs - 6, tw + 20, fs + 14, 8);
+        ctx.fill();
+        ctx.fillStyle = "#ffffff";
+        ctx.textAlign = "left";
+        ctx.textBaseline = "middle";
+        ctx.fillText(st.text ?? "", b.x + 6, b.y - fs / 2 + 1);
+      }
+      break;
+    case "pricelabel":
+      if (a) {
+        const txt = formatPrice(d.points[0]!.price);
+        ctx.font = "600 11px var(--font-mono), ui-monospace, monospace";
+        const tw = ctx.measureText(txt).width;
+        ctx.fillStyle = st.color;
+        ctx.beginPath();
+        ctx.moveTo(a.x, a.y);
+        ctx.lineTo(a.x + 8, a.y - 8);
+        ctx.lineTo(a.x + 8, a.y - 20);
+        ctx.lineTo(a.x + tw + 20, a.y - 20);
+        ctx.lineTo(a.x + tw + 20, a.y + 0);
+        ctx.lineTo(a.x + 8, a.y);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = "#060911";
+        ctx.textBaseline = "middle";
+        ctx.textAlign = "left";
+        ctx.fillText(txt, a.x + 13, a.y - 10);
+      }
+      break;
+    case "daterange":
+      if (a && b && d.points.length >= 2) {
+        const x1 = Math.min(a.x, b.x);
+        const x2 = Math.max(a.x, b.x);
+        ctx.fillStyle = fill;
+        ctx.fillRect(x1, 0, x2 - x1, env.height);
+        ctx.setLineDash([]);
+        line(ctx, { x: x1, y: 0 }, { x: x1, y: env.height });
+        line(ctx, { x: x2, y: 0 }, { x: x2, y: env.height });
+        const [p0, p1] = d.points as [DrawingPoint, DrawingPoint];
+        const bars = Math.round(Math.abs(env.mapper.timeToLogical(p1.time) - env.mapper.timeToLogical(p0.time)));
+        const secs = Math.abs(p1.time - p0.time);
+        const dur = secs >= 86400 ? `${(secs / 86400).toFixed(1)}d` : `${(secs / 3600).toFixed(1)}h`;
+        label(ctx, `${bars} bars · ${dur}`, (x1 + x2) / 2, Math.min(a.y, b.y) - 12, st.color, { align: "center", bg: st.color, fg: "#fff", font: 10 });
+      }
+      break;
     case "text":
       if (a) {
         const fs = st.fontSize ?? 14;
@@ -475,12 +731,15 @@ export class DrawingsPrimitive implements ISeriesPrimitive<Time> {
   private size = { width: 0, height: 0 };
   private readonly views: IPrimitivePaneView[];
 
-  constructor(private readonly mapper: CoordMapper) {
+  constructor(
+    private readonly mapper: CoordMapper,
+    private readonly candles?: () => readonly { time: number; close: number }[],
+  ) {
     const renderer: IPrimitivePaneRenderer = {
       draw: (target: Target) => {
         target.useMediaCoordinateSpace(({ context, mediaSize }) => {
           this.size = { width: mediaSize.width, height: mediaSize.height };
-          const env: RenderEnv = { mapper: this.mapper, width: mediaSize.width, height: mediaSize.height };
+          const env: RenderEnv = { mapper: this.mapper, width: mediaSize.width, height: mediaSize.height, candles: this.candles };
           for (const d of this.state.drawings) drawOne(context, d, env, d.id === this.state.selectedId, d.id === this.state.hoverId);
           if (this.state.preview) drawOne(context, this.state.preview, env, false, true);
         });
@@ -507,6 +766,6 @@ export class DrawingsPrimitive implements ISeriesPrimitive<Time> {
   }
 
   env(): RenderEnv {
-    return { mapper: this.mapper, width: this.size.width, height: this.size.height };
+    return { mapper: this.mapper, width: this.size.width, height: this.size.height, candles: this.candles };
   }
 }

@@ -2,7 +2,7 @@ import type { Candle } from "@cv/core";
 import type { IChartApi } from "lightweight-charts";
 import type { CoordMapper } from "./coords";
 import { DrawingsPrimitive, hitTest, positionPoints, type HitResult } from "./drawing-render";
-import { defaultStyle, DRAWING_SCHEMA_VERSION, POINTS_REQUIRED, type Drawing, type DrawingPoint, type Tool } from "./drawing-types";
+import { defaultStyle, DRAWING_SCHEMA_VERSION, POINTS_REQUIRED, TEXT_TOOLS, type Drawing, type DrawingPoint, type Tool } from "./drawing-types";
 
 export interface ControllerCallbacks {
   /** commit=true records an undo step; false is a live preview update. */
@@ -164,7 +164,7 @@ export class DrawingController {
     this.selectedId = done.id;
     this.cb.onSelect(done.id);
     this.cb.onToolDone();
-    if (done.type === "text") this.cb.onEditText(done.id);
+    if (TEXT_TOOLS.includes(done.type)) this.cb.onEditText(done.id);
   }
 
   private onDown = (e: PointerEvent) => {
@@ -311,7 +311,7 @@ export class DrawingController {
     }
     const { x, y } = this.local(e);
     const hit = this.hit(x, y);
-    if (hit?.d.type === "text") {
+    if (hit && TEXT_TOOLS.includes(hit.d.type)) {
       e.stopPropagation();
       this.cb.onEditText(hit.d.id);
     }

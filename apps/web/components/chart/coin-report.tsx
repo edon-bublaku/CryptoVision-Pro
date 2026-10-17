@@ -21,6 +21,7 @@ import { BacktestBadge, FactorList, HtfWarning, PlanTable } from "../signals/sig
 import { Badge, Button, Segmented, Skeleton } from "../ui/primitives";
 import { toast } from "../ui/toast";
 import { ActionBadge, Gauge } from "../ui/viz";
+import { AiExplain, DerivativesPanel } from "./report-extras";
 
 const MTF: Timeframe[] = ["15m", "1h", "4h", "1d", "1w"];
 
@@ -159,6 +160,14 @@ function Report({ symbol, timeframe, data }: { symbol: string; timeframe: Timefr
             )}
           </div>
         )}
+      </Section>
+
+      <Section title={t("ai.title")}>
+        <AiExplain symbol={symbol} timeframe={timeframe} signal={signal} levels={fa.analysis.levels} backtest={sid ? fa.backtest.byStrategy[sid] : null} />
+      </Section>
+
+      <Section title={t("deriv.title")}>
+        <DerivativesPanel symbol={symbol} />
       </Section>
 
       <Section title={t("signals.backtestOnCoin")} right={sid ? <span className="text-[10px] text-faint">{t(`strategy.${sid}`)}</span> : undefined}>

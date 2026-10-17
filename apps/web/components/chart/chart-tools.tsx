@@ -32,6 +32,16 @@ import {
   Unlock,
   Waypoints,
   Rows3,
+  Activity,
+  AudioWaveform,
+  CalendarRange,
+  Fan,
+  MessageSquare,
+  Tag,
+  TrendingUpDown,
+  Sigma,
+  Columns3,
+  Mountain,
   type LucideIcon,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -64,7 +74,7 @@ const GROUPS: { id: string; tools: ToolDef[] }[] = [
       { id: "hray", icon: MoveHorizontal },
       { id: "vline", icon: MoveVertical, hotkey: "Alt+V" },
       { id: "channel", icon: Rows3, hotkey: "Alt+C" },
-      { id: "pitchfork", icon: GitFork },
+      { id: "regression", icon: Sigma, hotkey: "Alt+G" },
     ],
   },
   {
@@ -72,6 +82,24 @@ const GROUPS: { id: string; tools: ToolDef[] }[] = [
     tools: [
       { id: "fib", icon: Waypoints, hotkey: "Alt+F" },
       { id: "fibext", icon: Waypoints },
+      { id: "fibfan", icon: Fan },
+      { id: "fibtime", icon: Columns3 },
+    ],
+  },
+  {
+    id: "gann",
+    tools: [
+      { id: "pitchfork", icon: GitFork },
+      { id: "gannfan", icon: Fan },
+    ],
+  },
+  {
+    id: "patterns",
+    tools: [
+      { id: "xabcd", icon: AudioWaveform },
+      { id: "elliott", icon: Activity },
+      { id: "abc", icon: TrendingUpDown },
+      { id: "headshoulders", icon: Mountain },
     ],
   },
   {
@@ -91,9 +119,17 @@ const GROUPS: { id: string; tools: ToolDef[] }[] = [
       { id: "long", icon: TrendingUp, hotkey: "Alt+L" },
       { id: "short", icon: TrendingDown, hotkey: "Alt+S" },
       { id: "measure", icon: Ruler, hotkey: "Alt+M" },
+      { id: "daterange", icon: CalendarRange },
     ],
   },
-  { id: "annot", tools: [{ id: "text", icon: Type, hotkey: "Alt+X" }] },
+  {
+    id: "annot",
+    tools: [
+      { id: "text", icon: Type, hotkey: "Alt+X" },
+      { id: "callout", icon: MessageSquare },
+      { id: "pricelabel", icon: Tag },
+    ],
+  },
 ];
 
 /** Vertical drawing toolbar with flyout groups (remembers the last tool used per group). */
@@ -249,17 +285,17 @@ export function DrawingStyleBar({ symbol, timeframe }: { symbol: string; timefra
         <option value="dashed">- - -</option>
         <option value="dotted">·····</option>
       </select>
-      {["rect", "ellipse", "triangle", "channel", "fib", "text"].includes(d.type) && (
+      {["rect", "ellipse", "triangle", "channel", "fib", "text", "regression", "xabcd", "headshoulders", "daterange", "callout"].includes(d.type) && (
         <button className={cn("h-7 rounded px-2 text-xs", d.style.fill ? "bg-accent-soft text-accent" : "text-muted hover:bg-panel-2")} onClick={() => patch({ style: { fill: !d.style.fill } })}>
           {t("chart.fill")}
         </button>
       )}
-      {["trendline", "channel", "fib", "fibext"].includes(d.type) && (
+      {["trendline", "channel", "fib", "fibext", "regression"].includes(d.type) && (
         <button className={cn("h-7 rounded px-2 text-xs", d.style.extendRight ? "bg-accent-soft text-accent" : "text-muted hover:bg-panel-2")} onClick={() => patch({ style: { extendRight: !d.style.extendRight } })}>
           {t("chart.extend")} →
         </button>
       )}
-      {d.type === "text" && (
+      {(d.type === "text" || d.type === "callout") && (
         <button
           className="h-7 rounded px-2 text-xs text-muted hover:bg-panel-2"
           onClick={() => {
