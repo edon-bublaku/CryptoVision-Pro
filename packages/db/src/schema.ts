@@ -112,6 +112,9 @@ export const positions = pgTable(
     closedAt: ts("closed_at"),
     pnl: money("pnl"),
     r: doublePrecision("r"),
+    /** Simulated position from a paper-trading order (SL/TP/liquidation executed automatically). */
+    paper: boolean("paper").notNull().default(false),
+    exitReason: text("exit_reason", { enum: ["MANUAL", "SL", "TP", "LIQ"] }),
   },
   (t) => [index("positions_user_idx").on(t.userId, t.closedAt)],
 );

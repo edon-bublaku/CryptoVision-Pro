@@ -45,21 +45,23 @@ jobs:
       - run: pnpm typecheck
       - name: Create test database
         run: PGPASSWORD=cryptovision psql -h localhost -U cryptovision -d cryptovision -c "CREATE DATABASE cryptovision_test"
-      - name: Unit + integration tests
+      - name: Unit + integration tests (PostgreSQL)
         run: pnpm test
       - run: pnpm db:migrate
       - run: pnpm build
       - name: Install Playwright Chromium
         run: pnpm exec playwright install --with-deps chromium
-      - name: End-to-end tests (production server)
+      - name: End-to-end tests (production server, PostgreSQL + Redis)
         run: |
-          cp -r apps/web/.next/static apps/web/.next/standalone/apps/web/.next/static
-          cp -r apps/web/public apps/web/.next/standalone/apps/web/public
-          (cd apps/web/.next/standalone/apps/web && PORT=3000 NODE_ENV=production node server.js &) 
+          (pnpm start > server.log 2>&1 &)
           npx wait-on http://localhost:3000/api/health
           BASE_URL=http://localhost:3000 pnpm exec playwright test
+      - name: Database tests on embedded PGlite
+        run: TEST_DATABASE_URL= pnpm exec vitest run packages/db
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: playwright-report
-          path: test-results
+          path: |
+            test-results
+            server.log

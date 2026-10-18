@@ -3,6 +3,7 @@
 - **Statusi:** Pranuar
 - **Data:** 2026-10-17
 - **Zëvendëson pjesërisht:** [ADR 0001](0001-client-side-first.md)
+- **Përditësuar nga:** [ADR 0005](0005-self-contained-platform.md) (worker-i nis brenda serverit dhe Redis është opsional)
 
 ## Konteksti
 

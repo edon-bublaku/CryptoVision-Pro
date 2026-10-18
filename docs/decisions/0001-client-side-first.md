@@ -21,7 +21,7 @@ Gjendja e përdoruesit (vizatime, portofol, alerte, cilësime) i përket një pe
 - Persistenca bëhet me **Zustand + localStorage**, me `version` në çdo store për migrime. Eksport/import JSON bëhet nga Cilësimet.
 - Paketat e analizës (`core`, `indicators`, `risk`, `signals`, `backtest`) janë **pure TypeScript**, pa I/O.
   Kështu mund të zhvendosen pa ndryshime në `apps/worker` kur të shtohet backend-i.
-- Aplikacioni mund të eksportohet si faqe statike (`STATIC_EXPORT=1 pnpm build`) dhe të hostohet kudo.
+- Aplikacioni mund të eksportohet si faqe statike (`STATIC_EXPORT=1 pnpm build`) dhe të hostohet kudo. *(Nuk vlen më që nga [ADR 0004](0004-worker-hybrid-mode.md): aplikacioni ka route API dhe nis me `pnpm start`.)*
 
 ## Pasojat
 

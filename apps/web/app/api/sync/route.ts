@@ -18,13 +18,14 @@ export const GET = route({ auth: true }, async ({ db, user }) => {
     openedAt: p.openedAt.getTime(),
     notes: p.notes ?? undefined,
     strategyId: p.strategyId,
+    paper: p.paper || undefined,
   });
   return json({
     state,
     drawings,
     portfolio: {
       positions: portfolio.open.map(pos),
-      closed: portfolio.closed.map((p) => ({ ...pos(p), exit: +(p.exit ?? 0), closedAt: p.closedAt!.getTime(), pnl: +(p.pnl ?? 0), r: p.r ?? undefined })),
+      closed: portfolio.closed.map((p) => ({ ...pos(p), exit: +(p.exit ?? 0), closedAt: p.closedAt!.getTime(), pnl: +(p.pnl ?? 0), r: p.r ?? undefined, exitReason: p.exitReason ?? undefined })),
     },
     alerts: alerts.map((a) => ({
       id: a.id,

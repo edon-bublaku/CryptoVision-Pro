@@ -3,7 +3,7 @@ import { HIGHER_TIMEFRAME, TIMEFRAME_SECONDS } from "@cv/core";
 import { finishScan, openTracked, startScan, updateTracked, upsertCandles, type Db, type SignalInput } from "@cv/db";
 import { evaluateOutcome, fullAnalysis, snapshotOf, type TrackedSignal } from "@cv/engine";
 import { closedOnly, derivativesBias, getDerivatives, getFearGreed, getKlines, getTickers24h, mapLimit, universe } from "@cv/exchange";
-import { cached, channels, env, getRedis, log } from "@cv/server";
+import { cached, channels, env, log, publish } from "@cv/server";
 import type { Signal } from "@cv/core";
 import { runSignalAlerts } from "./alerts";
 
@@ -63,9 +63,7 @@ export async function scanJob(db: Db, timeframe: Timeframe) {
 
   await finishScan(db, scanId, rows, failed);
   const active = rows.filter((r) => r.status === "ACTIVE");
-  await getRedis()
-    ?.publish(channels.signals, JSON.stringify({ timeframe, scanId, coins: rows.length, active: active.length }))
-    .catch(() => {});
+  await publish(channels.signals, JSON.stringify({ timeframe, scanId, coins: rows.length, active: active.length }));
   await runSignalAlerts(db, active);
   log.info({ timeframe, coins: rows.length, active: active.length, failed: failed.length, ms: Date.now() - t0 }, "scan finished");
   return { scanId, coins: rows.length, active: active.length };

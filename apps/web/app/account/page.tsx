@@ -107,7 +107,7 @@ function Profile({ user, onSaved }: { user: PublicUser; onSaved: (u: PublicUser)
         <Field label={t("auth.name")}>
           <Input value={name} onChange={(e) => setName(e.target.value)} maxLength={80} />
         </Field>
-        <Field label={t("settings.language")}>
+        <Field label={t("settings.language")} group>
           <Segmented value={locale} onChange={setLocale} options={[{ value: "sq", label: "Shqip" }, { value: "en", label: "English" }]} />
         </Field>
         <Button

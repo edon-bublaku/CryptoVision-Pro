@@ -25,10 +25,10 @@ export default function SettingsPage() {
       <Card>
         <CardHeader title={`${t("settings.language")} · ${t("settings.theme")}`} />
         <div className="flex flex-wrap items-end gap-4 p-4">
-          <Field label={t("settings.language")}>
+          <Field label={t("settings.language")} group>
             <Segmented value={s.lang} onChange={(v) => s.set({ lang: v })} options={[{ value: "sq", label: "Shqip" }, { value: "en", label: "English" }]} />
           </Field>
-          <Field label={t("settings.theme")}>
+          <Field label={t("settings.theme")} group>
             <Segmented value={s.theme} onChange={(v) => s.set({ theme: v })} options={[{ value: "dark", label: t("settings.theme.dark") }, { value: "light", label: t("settings.theme.light") }]} />
           </Field>
           <Switch checked={s.colorblind} onChange={(v) => s.set({ colorblind: v })} label={t("settings.colorblind")} />

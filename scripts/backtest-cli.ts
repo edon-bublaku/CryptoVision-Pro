@@ -4,7 +4,7 @@
  */
 import type { Candle, Timeframe } from "@cv/core";
 import { runBacktest } from "@cv/backtest";
-import { STRATEGY_IDS, type StrategyId } from "@cv/signals";
+import { STRATEGY_IDS, type BuiltInStrategyId } from "@cv/signals";
 
 const args = Object.fromEntries(
   process.argv.slice(2).reduce<[string, string][]>((acc, a, i, all) => {
@@ -16,7 +16,7 @@ const args = Object.fromEntries(
 const symbol = (args.symbol ?? "BTCUSDT").toUpperCase();
 const tf = (args.tf ?? "4h") as Timeframe;
 const bars = Number(args.bars ?? 2000);
-const strategy = args.strategy as StrategyId | undefined;
+const strategy = args.strategy as BuiltInStrategyId | undefined;
 
 async function fetchCandles(): Promise<Candle[]> {
   const out: Candle[] = [];

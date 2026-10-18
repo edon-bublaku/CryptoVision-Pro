@@ -83,13 +83,18 @@ export function Select({ className, children, ...props }: SelectHTMLAttributes<H
   );
 }
 
-export function Field({ label, children, hint, className }: { label: ReactNode; children: ReactNode; hint?: ReactNode; className?: string }) {
+/**
+ * Labelled form control. Use `group` for composite controls (Segmented, button rows): a <label>
+ * around several buttons would give the first one the whole group's text as its name.
+ */
+export function Field({ label, children, hint, className, group }: { label: ReactNode; children: ReactNode; hint?: ReactNode; className?: string; group?: boolean }) {
+  const Tag = group ? "div" : "label";
   return (
-    <label className={cn("flex flex-col gap-1", className)}>
+    <Tag className={cn("flex flex-col gap-1", className)} {...(group ? { role: "group", "aria-label": typeof label === "string" ? label : undefined } : {})}>
       <span className="text-xs font-medium text-muted">{label}</span>
       {children}
       {hint && <span className="text-[11px] text-faint">{hint}</span>}
-    </label>
+    </Tag>
   );
 }
 

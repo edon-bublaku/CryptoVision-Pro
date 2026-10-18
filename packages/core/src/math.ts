@@ -17,6 +17,13 @@ export function mean(xs: readonly number[]): number {
   return s / xs.length;
 }
 
+export function median(xs: readonly number[]): number {
+  const v = xs.filter(Number.isFinite).sort((a, b) => a - b);
+  if (!v.length) return NaN;
+  const m = v.length >> 1;
+  return v.length % 2 ? v[m]! : (v[m - 1]! + v[m]!) / 2;
+}
+
 export function stdev(xs: readonly number[]): number {
   if (xs.length < 2) return 0;
   const m = mean(xs);

@@ -45,6 +45,9 @@ importers:
       '@anthropic-ai/sdk':
         specifier: ^0.135.0
         version: 0.135.0(zod@4.6.7)
+      '@cv/analytics':
+        specifier: workspace:*
+        version: link:../../packages/analytics
       '@cv/backtest':
         specifier: workspace:*
         version: link:../../packages/backtest
@@ -72,9 +75,18 @@ importers:
       '@cv/signals':
         specifier: workspace:*
         version: link:../../packages/signals
+      '@cv/worker':
+        specifier: workspace:*
+        version: link:../worker
+      '@electric-sql/pglite':
+        specifier: ^0.5.10
+        version: 0.5.10
       '@tanstack/react-query':
         specifier: ^5.104.4
         version: 5.104.4(@types/react@19.3.0)(react@19.3.1)
+      bullmq:
+        specifier: ^5.81.5
+        version: 5.81.5
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
@@ -93,6 +105,9 @@ importers:
       next:
         specifier: ^16.4.2
         version: 16.4.2(@opentelemetry/api@1.9.1)(@playwright/test@1.56.1)(@types/node@22.20.5)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      pg:
+        specifier: ^8.23.1
+        version: 8.23.1
       qrcode:
         specifier: ^1.5.4
         version: 1.5.4
@@ -180,6 +195,12 @@ importers:
         specifier: ^3.6.4
         version: 3.6.4
 
+  packages/analytics:
+    dependencies:
+      '@cv/core':
+        specifier: workspace:*
+        version: link:../core
+
   packages/backtest:
     dependencies:
       '@cv/core':
@@ -202,9 +223,12 @@ importers:
       '@cv/core':
         specifier: workspace:*
         version: link:../core
+      '@electric-sql/pglite':
+        specifier: ^0.5.10
+        version: 0.5.10
       drizzle-orm:
         specifier: ~0.45.4
-        version: 0.45.4(@opentelemetry/api@1.9.1)(@types/pg@8.23.1)(pg@8.23.1)
+        version: 0.45.4(@electric-sql/pglite@0.5.10)(@opentelemetry/api@1.9.1)(@types/pg@8.23.1)(pg@8.23.1)
       pg:
         specifier: ^8.23.1
         version: 8.23.1
@@ -297,6 +321,9 @@ importers:
       '@cv/risk':
         specifier: workspace:*
         version: link:../risk
+      zod:
+        specifier: ^4.6.7
+        version: 4.6.7
 
 packages:
 
@@ -319,6 +346,9 @@ packages:
 
   '@drizzle-team/brocli@0.10.2':
     resolution: {integrity: sha512-z33Il7l5dKjUgGULTqBsQBQwckHh5AbIuxhdsIxDDiZAzBOrZO6q9ogcWC65kU382AfynTfgNumVcNIjuIua6w==}
+
+  '@electric-sql/pglite@0.5.10':
+    resolution: {integrity: sha512-tXc/25U3ulOkiRQuTFdwIv+JhBqtMdAF7Gvo6CfZZWtSB4+hgC4Wr2vwK5ngvvN5PJfAAEGIsfyCVy1JhCOBYw==}
 
   '@emnapi/runtime@1.11.3':
     resolution: {integrity: sha512-Xz4Tpyki7XyrpbUK1jR1AhdAdaXyhhY4lZ3neLodmhpuWfy2PAQN5B46sAiU4liOXGLkHypn/qU+jvfWSCYYLA==}
@@ -2256,6 +2286,8 @@ snapshots:
 
   '@drizzle-team/brocli@0.10.2': {}
 
+  '@electric-sql/pglite@0.5.10': {}
+
   '@emnapi/runtime@1.11.3':
     dependencies:
       tslib: 2.8.1
@@ -2943,8 +2975,9 @@ snapshots:
       esbuild: 0.25.12
       tsx: 4.23.15
 
-  drizzle-orm@0.45.4(@opentelemetry/api@1.9.1)(@types/pg@8.23.1)(pg@8.23.1):
+  drizzle-orm@0.45.4(@electric-sql/pglite@0.5.10)(@opentelemetry/api@1.9.1)(@types/pg@8.23.1)(pg@8.23.1):
     optionalDependencies:
+      '@electric-sql/pglite': 0.5.10
       '@opentelemetry/api': 1.9.1
       '@types/pg': 8.23.1
       pg: 8.23.1

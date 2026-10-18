@@ -15,6 +15,13 @@
       "when": 1792278886947,
       "tag": "0001_timescale",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792309217043,
+      "tag": "0002_paper_trading",
+      "breakpoints": true
     }
   ]
 }

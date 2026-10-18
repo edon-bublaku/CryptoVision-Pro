@@ -2,9 +2,9 @@
 
 import type { Side } from "@cv/core";
 import { baseAsset, correlation, formatCompact, formatPrice } from "@cv/core";
-import { positionSize, unrealizedPnl } from "@cv/risk";
+import { liquidationPrice, orderProblem, positionSize, unrealizedPnl, type OrderType } from "@cv/risk";
 import { useQueries } from "@tanstack/react-query";
-import { AlertTriangle, BriefcaseBusiness, Download, Plus, Trash2, X } from "lucide-react";
+import { AlertTriangle, BriefcaseBusiness, Clock, Download, Plus, Trash2, X } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { Badge, Button, Card, CardHeader, Empty, Field, Input, Modal, Segmented, Select, Stat, PageHeader } from "@/components/ui/primitives";
@@ -21,7 +21,7 @@ const COLORS = ["#4f8cff", "#16c784", "#f5a524", "#a78bfa", "#22d3ee", "#f472b6"
 
 export default function PortfolioPage() {
   const t = useT();
-  const { positions, closed, close, remove, removeClosed } = usePortfolio();
+  const { positions, closed, orders, close, remove, removeClosed, cancelOrder } = usePortfolio();
   const settings = useSettings();
   const live = useLivePrices();
   const [adding, setAdding] = useState(false);
@@ -72,6 +72,61 @@ export default function PortfolioPage() {
       )}
       <CorrelationWarnings symbols={[...new Set(positions.map((p) => p.symbol))]} />
 
+      {orders.length > 0 && (
+        <Card>
+          <CardHeader title={t("paper.orders")} subtitle={t("paper.ordersSub")} />
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="text-[11px] tracking-wide text-muted uppercase">
+                <tr className="border-b border-line">
+                  <th className="px-4 py-2 text-left">{t("common.symbol")}</th>
+                  <th className="px-2 py-2 text-left">{t("paper.type")}</th>
+                  <th className="px-2 py-2 text-right">{t("paper.trigger")}</th>
+                  <th className="px-2 py-2 text-right">{t("common.price")}</th>
+                  <th className="px-2 py-2 text-right">{t("paper.distance")}</th>
+                  <th className="px-2 py-2 text-right">SL / TP</th>
+                  <th className="px-2 py-2 text-right">{t("common.quantity")}</th>
+                  <th className="px-2 py-2 text-right">{t("paper.expires")}</th>
+                  <th className="px-4 py-2" />
+                </tr>
+              </thead>
+              <tbody>
+                {orders.map((o) => {
+                  const last = live[o.symbol]?.price;
+                  return (
+                    <tr key={o.id} className="border-b border-line/60">
+                      <td className="px-4 py-2">
+                        <span className="flex items-center gap-2 font-semibold">
+                          <CoinIcon symbol={o.symbol} size={20} /> {baseAsset(o.symbol)} <Badge tone={o.side === "LONG" ? "bull" : "bear"}>{o.side}</Badge>
+                          {o.leverage > 1 && <Badge>{o.leverage}×</Badge>}
+                        </span>
+                      </td>
+                      <td className="px-2">
+                        <Badge tone="accent">{o.type}</Badge>
+                      </td>
+                      <td className="num px-2 text-right">{formatPrice(o.price)}</td>
+                      <td className="num px-2 text-right">{last !== undefined ? formatPrice(last) : "—"}</td>
+                      <td className="num px-2 text-right text-xs text-muted">{last !== undefined ? `${(((o.price - last) / last) * 100).toFixed(2)}%` : "—"}</td>
+                      <td className="num px-2 text-right text-xs">
+                        <div className="text-bear">{o.stopLoss !== undefined ? formatPrice(o.stopLoss) : "—"}</div>
+                        <div className="text-bull">{o.takeProfit !== undefined ? formatPrice(o.takeProfit) : "—"}</div>
+                      </td>
+                      <td className="num px-2 text-right">{o.quantity.toPrecision(5)}</td>
+                      <td className="px-2 text-right text-xs text-muted">{o.expiresAt ? new Date(o.expiresAt).toLocaleString() : "GTC"}</td>
+                      <td className="px-4 text-right">
+                        <Button size="xs" onClick={() => cancelOrder(o.id)}>
+                          {t("paper.cancel")}
+                        </Button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
+
       <div className="grid gap-4 xl:grid-cols-3">
         <Card className="min-w-0 xl:col-span-2">
           <CardHeader title={t("portfolio.positions")} />
@@ -101,6 +156,7 @@ export default function PortfolioPage() {
                             <div className="flex items-center gap-1.5 font-semibold">
                               {baseAsset(p.symbol)} <Badge tone={p.side === "LONG" ? "bull" : "bear"}>{p.side}</Badge>
                               {p.leverage > 1 && <Badge>{p.leverage}×</Badge>}
+                              {p.paper && <Badge tone="accent">PAPER</Badge>}
                             </div>
                             <div className="num text-[11px] text-muted">
                               {p.quantity.toPrecision(5)} · {p.notes ?? ""}
@@ -113,6 +169,7 @@ export default function PortfolioPage() {
                       <td className="num px-2 text-right text-xs">
                         <div className="text-bear">{p.stopLoss !== undefined ? formatPrice(p.stopLoss) : "—"}</div>
                         <div className="text-bull">{p.takeProfit !== undefined ? formatPrice(p.takeProfit) : "—"}</div>
+                        {p.leverage > 1 && <div className="text-warn" title={t("paper.liq")}>LIQ {formatPrice(liquidationPrice(p) ?? 0)}</div>}
                       </td>
                       <td className="num px-2 text-right text-xs">{risk === null ? <span className="text-warn">{t("portfolio.noStop")}</span> : `$${risk.toFixed(2)}`}</td>
                       <td className="px-2 text-right">
@@ -185,7 +242,7 @@ export default function PortfolioPage() {
                 onClick={() =>
                   download(
                     "cryptovision-journal.csv",
-                    ["symbol,side,entry,exit,quantity,pnl,r,opened,closed,notes", ...closed.map((c) => [c.symbol, c.side, c.entry, c.exit, c.quantity, c.pnl.toFixed(2), c.r?.toFixed(2) ?? "", new Date(c.openedAt).toISOString(), new Date(c.closedAt).toISOString(), JSON.stringify(c.notes ?? "")].join(","))].join("\n"),
+                    ["symbol,side,entry,exit,quantity,pnl,r,opened,closed,exit_reason,paper,notes", ...closed.map((c) => [c.symbol, c.side, c.entry, c.exit, c.quantity, c.pnl.toFixed(2), c.r?.toFixed(2) ?? "", new Date(c.openedAt).toISOString(), new Date(c.closedAt).toISOString(), c.exitReason ?? "MANUAL", c.paper ? 1 : 0, JSON.stringify(c.notes ?? "")].join(","))].join("\n"),
                     "text/csv",
                   )
                 }
@@ -205,6 +262,12 @@ export default function PortfolioPage() {
                   <tr key={c.id} className="border-b border-line/60">
                     <td className="px-4 py-2 font-medium">
                       {baseAsset(c.symbol)} <Badge tone={c.side === "LONG" ? "bull" : "bear"}>{c.side}</Badge>
+                      {c.paper && <Badge tone="accent" className="ml-1">PAPER</Badge>}
+                      {c.exitReason && c.exitReason !== "MANUAL" && (
+                        <Badge tone={c.exitReason === "TP" ? "bull" : c.exitReason === "LIQ" ? "warn" : "bear"} className="ml-1">
+                          {c.exitReason}
+                        </Badge>
+                      )}
                     </td>
                     <td className="num px-2 text-right">{formatPrice(c.entry)} → {formatPrice(c.exit)}</td>
                     <td className={cn("num px-2 text-right font-semibold", c.pnl >= 0 ? "text-bull" : "text-bear")}>
@@ -293,6 +356,9 @@ function CorrelationWarnings({ symbols }: { symbols: string[] }) {
 function AddPositionModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const t = useT();
   const add = usePortfolio((s) => s.add);
+  const placeOrder = usePortfolio((s) => s.placeOrder);
+  const [exec, setExec] = useState<"manual" | "market" | OrderType>("manual");
+  const [expiry, setExpiry] = useState(0);
   const settings = useSettings();
   const { data: tickers } = useTickers();
   const [form, setForm] = useState({ symbol: "BTCUSDT", side: "LONG" as Side, entry: "", quantity: "", stopLoss: "", takeProfit: "", leverage: "1", notes: "" });
@@ -300,10 +366,30 @@ function AddPositionModal({ open, onClose }: { open: boolean; onClose: () => voi
   const entry = form.entry ? +form.entry : (price ?? 0);
   const sized = form.stopLoss ? positionSize({ equity: settings.equity, riskPct: settings.riskPct, entry, stopLoss: +form.stopLoss, maxLeverage: settings.maxLeverage, feeRate: settings.feePct / 100 }) : null;
   const set = (k: keyof typeof form, v: string) => setForm((f) => ({ ...f, [k]: v }));
-  const valid = entry > 0 && (form.quantity ? +form.quantity > 0 : !!sized);
+  const quantity = form.quantity ? +form.quantity : (sized?.quantity ?? 0);
+  const isOrder = exec === "LIMIT" || exec === "STOP";
+  // Paper market orders open at the live price, so the typed entry only matters for manual / orders.
+  const effEntry = exec === "market" ? (price ?? 0) : entry;
+  const problem =
+    isOrder && price
+      ? orderProblem({ side: form.side, type: exec, price: entry, quantity, stopLoss: form.stopLoss ? +form.stopLoss : undefined, takeProfit: form.takeProfit ? +form.takeProfit : undefined }, price)
+      : null;
+  const valid = effEntry > 0 && quantity > 0 && !problem && (!isOrder || !!form.entry);
 
   return (
     <Modal open={open} onClose={onClose} title={t("portfolio.add")}>
+      <Field label={t("paper.execution")} className="mb-3" group>
+        <Segmented
+          value={exec}
+          onChange={setExec}
+          options={[
+            { value: "manual", label: t("paper.manual"), title: t("paper.manualHint") },
+            { value: "market", label: "Paper · Market" },
+            { value: "LIMIT", label: "Paper · Limit" },
+            { value: "STOP", label: "Paper · Stop" },
+          ]}
+        />
+      </Field>
       <div className="grid grid-cols-2 gap-3">
         <Field label={t("common.symbol")}>
           <Select value={form.symbol} onChange={(e) => set("symbol", e.target.value)}>
@@ -317,11 +403,11 @@ function AddPositionModal({ open, onClose }: { open: boolean; onClose: () => voi
               ))}
           </Select>
         </Field>
-        <Field label={t("common.side")}>
+        <Field label={t("common.side")} group>
           <Segmented value={form.side} onChange={(v) => set("side", v)} options={[{ value: "LONG", label: "LONG" }, { value: "SHORT", label: "SHORT" }]} />
         </Field>
-        <Field label={t("plan.entry")} hint={price ? `${t("common.price")}: ${formatPrice(price)}` : undefined}>
-          <Input type="number" step="any" placeholder={price ? String(price) : ""} value={form.entry} onChange={(e) => set("entry", e.target.value)} />
+        <Field label={isOrder ? t("paper.trigger") : t("plan.entry")} hint={price ? `${t("common.price")}: ${formatPrice(price)}` : undefined}>
+          <Input type="number" step="any" disabled={exec === "market"} placeholder={price ? String(price) : ""} value={exec === "market" ? "" : form.entry} onChange={(e) => set("entry", e.target.value)} />
         </Field>
         <Field label={t("plan.stop")}>
           <Input type="number" step="any" value={form.stopLoss} onChange={(e) => set("stopLoss", e.target.value)} />
@@ -338,27 +424,39 @@ function AddPositionModal({ open, onClose }: { open: boolean; onClose: () => voi
         <Field label={t("common.notes")}>
           <Input value={form.notes} onChange={(e) => set("notes", e.target.value)} />
         </Field>
+        {isOrder && (
+          <Field label={t("paper.expires")}>
+            <Select value={expiry} onChange={(e) => setExpiry(+e.target.value)}>
+              <option value={0}>GTC</option>
+              <option value={3600_000}>1h</option>
+              <option value={86_400_000}>24h</option>
+              <option value={7 * 86_400_000}>7d</option>
+            </Select>
+          </Field>
+        )}
       </div>
+      {problem && <p className="mt-3 rounded-lg bg-warn-soft p-2 text-xs text-warn">{t(`paper.problem.${problem}`)}</p>}
+      {exec !== "manual" && <p className="mt-3 text-[11px] leading-relaxed text-faint">{t("paper.help")}</p>}
       <div className="mt-5 flex justify-end gap-2">
         <Button onClick={onClose}>{t("common.cancel")}</Button>
         <Button
           variant="primary"
           disabled={!valid}
           onClick={() => {
-            add({
+            const base = {
               symbol: form.symbol,
               side: form.side,
-              entry,
-              quantity: form.quantity ? +form.quantity : (sized?.quantity ?? 0),
+              quantity,
               stopLoss: form.stopLoss ? +form.stopLoss : undefined,
               takeProfit: form.takeProfit ? +form.takeProfit : undefined,
               leverage: Math.max(1, +form.leverage || 1),
-              notes: form.notes || undefined,
-            } satisfies Omit<Position, "id" | "openedAt">);
+            };
+            if (isOrder) placeOrder({ ...base, type: exec, price: entry, expiresAt: expiry ? Date.now() + expiry : undefined, note: form.notes || undefined });
+            else add({ ...base, entry: effEntry, notes: form.notes || undefined, paper: exec === "market" || undefined } satisfies Omit<Position, "id" | "openedAt">);
             onClose();
           }}
         >
-          {t("common.add")}
+          {isOrder ? t("paper.place") : t("common.add")}
         </Button>
       </div>
     </Modal>

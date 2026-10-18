@@ -16,6 +16,8 @@ const schema = z.object({
   VAPID_PUBLIC_KEY: z.string().optional(),
   VAPID_PRIVATE_KEY: z.string().optional(),
   VAPID_SUBJECT: z.string().default("mailto:admin@cryptovision.local"),
+  /** Where scans/alerts run: inside the web server (default), in `apps/worker` (needs PostgreSQL), or nowhere. */
+  WORKER: z.enum(["inprocess", "external", "off"]).default("inprocess"),
   SCAN_TIMEFRAMES: z.string().default("1h,4h,1d"),
   SCAN_SIZE: z.coerce.number().int().min(5).max(200).default(60),
   LOG_LEVEL: z.enum(["trace", "debug", "info", "warn", "error"]).default("info"),
@@ -32,8 +34,9 @@ export function env(): Env {
   const raw = Object.fromEntries(Object.entries(process.env).filter(([, v]) => v !== ""));
   const parsed = schema.safeParse(raw);
   if (!parsed.success) throw new Error(`Invalid environment:\n${parsed.error.issues.map((i) => `  ${i.path.join(".")}: ${i.message}`).join("\n")}`);
-  if (parsed.data.DATABASE_URL && !parsed.data.ENCRYPTION_KEY && parsed.data.NODE_ENV === "production")
-    throw new Error("ENCRYPTION_KEY is required in production when DATABASE_URL is set");
+  const external = parsed.data.DATABASE_URL?.startsWith("postgres");
+  if (external && !parsed.data.ENCRYPTION_KEY && parsed.data.NODE_ENV === "production")
+    throw new Error("ENCRYPTION_KEY is required in production with an external PostgreSQL (the generated key file is per machine)");
   cached = parsed.data;
   return cached;
 }

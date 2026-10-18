@@ -5,7 +5,7 @@ import { buildTradePlan, DEFAULT_RISK, type RiskConfig } from "@cv/risk";
 import { buildContext, lastSwingAt, type SeriesContext } from "./context";
 import { aggregate, evaluateFactors, trendScore, type FactorEnv } from "./factors";
 import { detectRegime, type RegimeInfo } from "./regime";
-import { STRATEGIES, type Setup, type StrategyId } from "./strategies";
+import { STRATEGIES, type Setup, type Strategy, type StrategyId } from "./strategies";
 
 export interface EvaluateOptions {
   htfScore?: number;
@@ -14,6 +14,8 @@ export interface EvaluateOptions {
   risk?: Partial<RiskConfig>;
   /** Restrict to these strategies (backtest of a single strategy). */
   strategies?: StrategyId[];
+  /** Extra user-defined strategies, evaluated alongside the allowed built-ins. */
+  custom?: Strategy[];
   /** S/R levels known at this bar; computed if omitted. */
   levels?: Level[];
 }
@@ -64,14 +66,14 @@ export function evaluateAt(ctx: SeriesContext, i: number, opts: EvaluateOptions 
 
   let setup: Evaluation["setup"] = null;
   if (regime.regime !== "LOW_LIQUIDITY") {
-    const allowed = opts.strategies ? STRATEGIES.filter((s) => opts.strategies!.includes(s.id)) : STRATEGIES;
+    const allowed = [...(opts.strategies ? STRATEGIES.filter((s) => opts.strategies!.includes(s.id)) : STRATEGIES), ...(opts.custom ?? [])];
     let best: Evaluation["setup"] = null;
     for (const s of allowed) {
       if (!s.regimes.includes(regime.regime)) continue;
       const found = s.detect(ctx, i);
       if (!found) continue;
       // Confluence must not contradict the setup.
-      const agrees = found.side === "LONG" ? rawScore > -0.05 : rawScore < 0.05;
+      const agrees = s.ignoreConfluence || (found.side === "LONG" ? rawScore > -0.05 : rawScore < 0.05);
       if (!agrees) continue;
       if (!best || found.strength > best.strength) best = { ...found, strategyId: s.id };
     }

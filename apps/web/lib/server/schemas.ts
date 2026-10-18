@@ -38,11 +38,14 @@ const positionBase = z.object({
   openedAt: finite,
   notes: z.string().max(500).optional(),
   strategyId: z.string().max(64).nullable().optional(),
+  paper: z.boolean().optional(),
 });
 
 export const portfolioInput = z.object({
   positions: z.array(positionBase).max(500),
-  closed: z.array(positionBase.extend({ exit: finite.positive(), closedAt: finite, pnl: finite, r: finite.optional() })).max(2000),
+  closed: z
+    .array(positionBase.extend({ exit: finite.positive(), closedAt: finite, pnl: finite, r: finite.optional(), exitReason: z.enum(["MANUAL", "SL", "TP", "LIQ"]).optional() }))
+    .max(2000),
 });
 
 export const alertSchema = z.object({
@@ -61,5 +64,5 @@ export const alertSchema = z.object({
 
 export const alertsInput = z.object({ alerts: z.array(alertSchema).max(200) });
 
-export const stateKeys = ["settings", "screens", "chartUi", "tracked"] as const;
+export const stateKeys = ["settings", "screens", "strategies", "orders", "chartUi", "tracked"] as const;
 export const stateInput = z.object({ value: z.unknown(), baseVersion: z.number().int().nullable() });

@@ -7,8 +7,9 @@ import { translate } from "@/lib/i18n";
 import { useAlerts, type Alert } from "@/lib/store/alerts";
 import { useAuth } from "@/lib/store/auth";
 import { useDrawings } from "@/lib/store/drawings";
-import { usePortfolio, type ClosedTrade, type Position } from "@/lib/store/portfolio";
+import { usePortfolio, type ClosedTrade, type PaperOrder, type Position } from "@/lib/store/portfolio";
 import { useSavedScans } from "@/lib/store/screens";
+import { useStrategies } from "@/lib/store/strategies";
 import { useSettings, type SettingsState } from "@/lib/store/settings";
 import { toast } from "../ui/toast";
 
@@ -138,6 +139,8 @@ export function SyncManager() {
       if (!value || typeof value !== "object") return;
       if (key === "settings") useSettings.setState(value as Partial<SettingsState>);
       if (key === "screens") useSavedScans.setState({ saved: (value as { saved: [] }).saved ?? [] });
+      if (key === "strategies") useStrategies.setState({ saved: (value as { saved: [] }).saved ?? [] });
+      if (key === "orders") usePortfolio.setState({ orders: (value as { orders: PaperOrder[] }).orders ?? [] });
     }
 
     (async () => {
@@ -148,7 +151,9 @@ export function SyncManager() {
         apply(() => {
           for (const [k, doc] of Object.entries(snap.state)) {
             versions.current[k] = doc.version;
-            applyState(k, doc.value);
+            // Pending orders placed offline on this device are kept alongside the server's.
+            if (k === "orders") usePortfolio.setState({ orders: unionById(usePortfolio.getState().orders, (doc.value as { orders?: PaperOrder[] } | null)?.orders ?? []) });
+            else applyState(k, doc.value);
           }
           const local = useDrawings.getState().bySymbol;
           const merged: Record<string, Drawing[]> = { ...local };
@@ -168,6 +173,8 @@ export function SyncManager() {
         await Promise.all([
           snap.state.settings ? Promise.resolve() : putState("settings", pickSettings(s)),
           snap.state.screens ? Promise.resolve() : putState("screens", { saved: useSavedScans.getState().saved }),
+          snap.state.strategies ? Promise.resolve() : putState("strategies", { saved: useStrategies.getState().saved }),
+          putState("orders", { orders: usePortfolio.getState().orders }),
           dirtySymbols.size ? pushDrawings() : Promise.resolve(),
           pushPortfolio(),
           pushAlerts(),
@@ -188,13 +195,18 @@ export function SyncManager() {
       useSavedScans.subscribe((s, prev) => {
         if (!applying.current && s.saved !== prev.saved) debounce("screens", () => void putState("screens", { saved: useSavedScans.getState().saved }));
       }),
+      useStrategies.subscribe((s, prev) => {
+        if (!applying.current && s.saved !== prev.saved) debounce("strategies", () => void putState("strategies", { saved: useStrategies.getState().saved }));
+      }),
       useDrawings.subscribe((s, prev) => {
         if (applying.current || s.bySymbol === prev.bySymbol) return;
         for (const sym of new Set([...Object.keys(s.bySymbol), ...Object.keys(prev.bySymbol)])) if (s.bySymbol[sym] !== prev.bySymbol[sym]) dirtySymbols.add(sym);
         debounce("drawings", () => void pushDrawings(), 600);
       }),
       usePortfolio.subscribe((s, prev) => {
-        if (!applying.current && (s.positions !== prev.positions || s.closed !== prev.closed)) debounce("portfolio", () => void pushPortfolio());
+        if (applying.current) return;
+        if (s.positions !== prev.positions || s.closed !== prev.closed) debounce("portfolio", () => void pushPortfolio());
+        if (s.orders !== prev.orders) debounce("orders", () => void putState("orders", { orders: usePortfolio.getState().orders }));
       }),
       useAlerts.subscribe((s, prev) => {
         if (!applying.current && s.alerts !== prev.alerts) debounce("alerts", () => void pushAlerts());
@@ -220,7 +232,7 @@ export function EventsBridge({ onScan }: { onScan: (tf: string) => void }) {
   const user = useAuth((s) => s.user);
   const health = useAuth((s) => s.health);
   useEffect(() => {
-    if (!health?.redis) return;
+    if (!health?.realtime) return;
     const es = new EventSource("/api/events");
     es.addEventListener("alert", (ev) => {
       const e = JSON.parse((ev as MessageEvent<string>).data) as { alertId: string | null; symbol: string; title: string; message: string };
@@ -238,6 +250,6 @@ export function EventsBridge({ onScan }: { onScan: (tf: string) => void }) {
     });
     es.addEventListener("scan", (ev) => onScan((JSON.parse((ev as MessageEvent<string>).data) as { timeframe: string }).timeframe));
     return () => es.close();
-  }, [health?.redis, user, onScan]);
+  }, [health?.realtime, user, onScan]);
   return null;
 }

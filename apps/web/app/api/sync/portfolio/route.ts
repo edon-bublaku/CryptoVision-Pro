@@ -18,10 +18,11 @@ export const PUT = route({ auth: true, rate: 60 }, async ({ req, db, user }) => 
     strategyId: p.strategyId ?? null,
     notes: p.notes ?? null,
     openedAt: new Date(p.openedAt),
+    paper: p.paper ?? false,
   });
   await replacePortfolio(db, user!.id, [
     ...positions.map(base),
-    ...closed.map((c) => ({ ...base(c), exit: String(c.exit), closedAt: new Date(c.closedAt), pnl: String(c.pnl), r: c.r ?? null })),
+    ...closed.map((c) => ({ ...base(c), exit: String(c.exit), closedAt: new Date(c.closedAt), pnl: String(c.pnl), r: c.r ?? null, exitReason: c.exitReason ?? null })),
   ]);
   return json({ ok: true });
 });

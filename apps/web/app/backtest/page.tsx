@@ -3,12 +3,13 @@
 import type { Candle, Timeframe } from "@cv/core";
 import { formatPrice, TIMEFRAMES } from "@cv/core";
 import type { BacktestResult } from "@cv/backtest";
-import { STRATEGY_IDS, type StrategyId } from "@cv/signals";
+import { STRATEGY_IDS, type CustomStrategyDef, type StrategyId } from "@cv/signals";
 import { FlaskConical, Loader2, Play, ShieldAlert } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import { EquityChart } from "@/components/backtest/equity-chart";
+import { newStrategy, StrategyBuilder } from "@/components/backtest/strategy-builder";
 import { ChartPanel } from "@/components/chart/chart-panel";
-import { Badge, Button, Card, CardHeader, Empty, Field, Input, Select, Stat, Switch, PageHeader } from "@/components/ui/primitives";
+import { Badge, Button, Card, CardHeader, Empty, Field, Input, PageHeader, Segmented, Select, Stat, Switch } from "@/components/ui/primitives";
 import { useTickers } from "@/lib/data/hooks";
 import { useT } from "@/lib/i18n";
 import { useSettings } from "@/lib/store/settings";
@@ -26,6 +27,8 @@ export default function BacktestPage() {
   const [tf, setTf] = useState<Timeframe>("4h");
   const [bars, setBars] = useState(2000);
   const [strategies, setStrategies] = useState<StrategyId[]>([...STRATEGY_IDS]);
+  const [mode, setMode] = useState<"builtin" | "custom">("builtin");
+  const [custom, setCustom] = useState<CustomStrategyDef>(newStrategy);
   const [riskPct, setRiskPct] = useState(settings.riskPct);
   const [fee, setFee] = useState(settings.feePct);
   const [slip, setSlip] = useState(0.05);
@@ -56,6 +59,7 @@ export default function BacktestPage() {
       timeframe: tf,
       bars,
       config: { strategies, riskPct, feeRate: fee / 100, slippageAtr: slip, allowShort, htfFilter, initialEquity: settings.equity, maxLeverage: settings.maxLeverage },
+      custom: mode === "custom" ? custom : undefined,
     } satisfies BacktestRequest);
   };
 
@@ -112,8 +116,16 @@ export default function BacktestPage() {
           </div>
         </div>
         <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-line pt-3">
-          <span className="text-xs text-muted">{t("backtest.strategies")}:</span>
-          {STRATEGY_IDS.map((id) => (
+          <Segmented
+            value={mode}
+            onChange={setMode}
+            options={[
+              { value: "builtin", label: t("builder.modeBuiltin") },
+              { value: "custom", label: t("builder.modeCustom") },
+            ]}
+          />
+          {mode === "builtin" && <span className="text-xs text-muted">{t("backtest.strategies")}:</span>}
+          {mode === "builtin" && STRATEGY_IDS.map((id) => (
             <button
               key={id}
               title={t(`strategy.desc.${id}`)}
@@ -123,11 +135,22 @@ export default function BacktestPage() {
               {t(`strategy.${id}`)}
             </button>
           ))}
-          <Button variant="primary" size="md" className="ml-auto" onClick={run} disabled={state.status === "running" || strategies.length === 0}>
+          <Button
+            variant="primary"
+            size="md"
+            className="ml-auto"
+            onClick={run}
+            disabled={state.status === "running" || (mode === "builtin" ? strategies.length === 0 : !custom.long.length && !custom.short.length)}
+          >
             {state.status === "running" ? <Loader2 size={15} className="animate-spin" /> : <Play size={15} />}
             {state.status === "running" ? `${t("backtest.running")} ${state.phase ?? ""}` : t("backtest.run")}
           </Button>
         </div>
+        {mode === "custom" && (
+          <div className="mt-3 border-t border-line pt-3">
+            <StrategyBuilder value={custom} onChange={setCustom} />
+          </div>
+        )}
       </Card>
 
       <div className="flex items-start gap-2 rounded-lg border border-warn/30 bg-warn-soft p-3 text-xs text-warn">

@@ -27,18 +27,17 @@ import {
   updateTracked,
   upsertCandles,
 } from "./index";
-import { runMigrations } from "./migrate";
+import type { Db } from "./client";
 
-const url = process.env.TEST_DATABASE_URL;
+/** Real PostgreSQL when TEST_DATABASE_URL is set (CI), otherwise embedded PGlite in memory. */
+const url = process.env.TEST_DATABASE_URL || "memory://";
 
-/** Integration tests against a real PostgreSQL (run `scripts/dev-services.sh` first). */
-describe.skipIf(!url)("db repositories", () => {
-  const db = getDb(url)!;
+describe(`db repositories (${url.startsWith("memory") ? "PGlite" : "PostgreSQL"})`, () => {
+  let db: Db;
   let userId = "";
 
   beforeAll(async () => {
-    process.env.DATABASE_URL = url;
-    await runMigrations();
+    db = (await getDb(url))!;
     await db.execute(sql`TRUNCATE users, signals, scans, candles, audit_log CASCADE`);
   });
   afterAll(() => closeDb());

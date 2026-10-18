@@ -44,3 +44,15 @@ describe("backtest", () => {
     expect(a.returnP50).toBeLessThanOrEqual(a.returnP95);
   });
 });
+
+describe("backtest with a user-defined strategy", () => {
+  it("trades only the custom rules and keeps accounting consistent", async () => {
+    const { buildCustomStrategy, CUSTOM_PRESETS } = await import("@cv/signals");
+    const custom = buildCustomStrategy(CUSTOM_PRESETS.find((p) => p.id === "preset-donchian")!);
+    const r = runBacktest(candles, { strategies: [], custom: [custom], timeframe: "4h", htfFilter: false });
+    expect(r.trades.length).toBeGreaterThan(3);
+    for (const t of r.trades) expect(t.strategyId).toBe("custom");
+    const sum = r.trades.reduce((s, t) => s + t.pnl, 0);
+    expect(r.metrics.finalEquity).toBeCloseTo(10_000 + sum, 6);
+  });
+});

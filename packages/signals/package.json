@@ -11,6 +11,7 @@
   "dependencies": {
     "@cv/core": "workspace:*",
     "@cv/indicators": "workspace:*",
-    "@cv/risk": "workspace:*"
+    "@cv/risk": "workspace:*",
+    "zod": "^4.6.7"
   }
 }

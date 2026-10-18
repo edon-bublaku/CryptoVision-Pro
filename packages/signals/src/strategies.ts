@@ -13,9 +13,13 @@ export interface Strategy {
   id: StrategyId;
   regimes: MarketRegime[];
   detect(ctx: SeriesContext, i: number): Setup | null;
+  /** Skip the "confluence must not contradict the setup" check (user-defined rules). */
+  ignoreConfluence?: boolean;
 }
 
-export type StrategyId = "trend_pullback" | "breakout_volume" | "mean_reversion" | "macd_adx_momentum" | "smc_zone_retest" | "rsi_divergence";
+export type BuiltInStrategyId = "trend_pullback" | "breakout_volume" | "mean_reversion" | "macd_adx_momentum" | "smc_zone_retest" | "rsi_divergence";
+/** "custom" is a user-defined strategy (see custom.ts). */
+export type StrategyId = BuiltInStrategyId | "custom";
 
 const fin = (v: number | undefined): v is number => v !== undefined && Number.isFinite(v);
 
@@ -171,7 +175,7 @@ const rsiDivergence: Strategy = {
 
 export const STRATEGIES: Strategy[] = [trendPullback, breakoutVolume, meanReversion, macdAdx, smcRetest, rsiDivergence];
 
-export const STRATEGY_IDS = STRATEGIES.map((s) => s.id);
+export const STRATEGY_IDS = STRATEGIES.map((s) => s.id) as BuiltInStrategyId[];
 
 export function getStrategy(id: StrategyId): Strategy {
   const s = STRATEGIES.find((x) => x.id === id);

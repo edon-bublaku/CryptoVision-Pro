@@ -87,7 +87,7 @@ export default function SignalsPage() {
         <>
           <Card className="p-3">
             <div className="flex flex-wrap items-end gap-3">
-              <Field label={t("common.timeframe")}>
+              <Field label={t("common.timeframe")} group>
                 <Segmented value={tf} onChange={setTf} options={SCAN_TFS.map((x) => ({ value: x, label: x }))} />
               </Field>
               <Field label={t("signals.universe")}>
@@ -117,7 +117,7 @@ export default function SignalsPage() {
             {error && <p className="mt-2 text-xs text-bear">{error}</p>}
             <div className="mt-3 flex flex-wrap items-end gap-3 border-t border-line pt-3">
               <Switch checked={onlyActive} onChange={setOnlyActive} label={t("signals.onlyActive")} />
-              <Field label={t("signals.direction")}>
+              <Field label={t("signals.direction")} group>
                 <Segmented
                   value={dir}
                   onChange={setDir}

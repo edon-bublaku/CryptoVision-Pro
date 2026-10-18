@@ -16,6 +16,7 @@ import {
   LogIn,
   LogOut,
   Moon,
+  Orbit,
   Radar,
   Search,
   Settings,
@@ -36,6 +37,7 @@ import { useChartUi } from "@/lib/store/chart-ui";
 import { useSettings } from "@/lib/store/settings";
 import { cn } from "@/lib/utils";
 import { AlertEngine } from "./alert-engine";
+import { PaperEngine } from "./paper-engine";
 import { EventsBridge, SyncManager } from "./sync-manager";
 import { Button, Input, Modal } from "../ui/primitives";
 import { Toaster } from "../ui/toast";
@@ -46,6 +48,7 @@ const NAV = [
   { href: "/chart", key: "nav.chart", icon: CandlestickChart },
   { href: "/signals", key: "nav.signals", icon: Zap },
   { href: "/screener", key: "nav.screener", icon: Radar },
+  { href: "/markets", key: "nav.markets", icon: Orbit },
   { href: "/backtest", key: "nav.backtest", icon: FlaskConical },
   { href: "/portfolio", key: "nav.portfolio", icon: BriefcaseBusiness },
   { href: "/alerts", key: "nav.alerts", icon: Bell },
@@ -228,6 +231,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </Modal>
       <AlertEngine />
+      <PaperEngine />
       <SyncManager />
       <EventsBridge onScan={onScan} />
       <Toaster />

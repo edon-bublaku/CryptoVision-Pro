@@ -45,16 +45,16 @@ me shpjegim transparent *pse*, dhe me mjete profesionale charting për analizën
 | Validim | **Zod** kudo (API input/output, env, WS payloads) | Type-safety në runtime |
 | Backend API | **Next.js Route Handlers** + **tRPC** (ose Hono) për API të tipizuar | End-to-end types |
 | Worker | **Node.js + BullMQ** (`apps/worker`) | Llogaritje sinjalesh, skanime, alerte |
-| DB | **PostgreSQL 16 + TimescaleDB** (hypertables për OHLCV) | Time-series efikase |
+| DB | **PGlite** (PostgreSQL në WASM, i integruar, default) ose **PostgreSQL 16 + TimescaleDB** ([ADR 0005](docs/decisions/0005-self-contained-platform.md)) | Zero instalim; e njëjta skemë në prodhim |
 | ORM | **Drizzle ORM** + migrime SQL | Tipizim i fortë, SQL transparent |
-| Cache / PubSub | **Redis** | Cache çmimesh, pub/sub për sinjale live, rate-limit |
+| Cache / PubSub | Bus në memorie (default) ose **Redis** kur ka disa procese | Pub/sub për sinjale live, rate-limit |
 | Auth | Auth e vetë-implementuar: email + fjalëkalim (scrypt), sesione në DB, 2FA TOTP ([ADR 0003](docs/decisions/0003-custom-auth.md)) | Siguri, sesione të revokueshme |
 | Real-time te klienti | **Server-Sent Events** ose WS (`apps/realtime`) | Push sinjalesh/alertesh |
 | Njoftime | Web Push, Email (Resend), Telegram Bot | Alerte |
 | AI (opsionale) | Claude API, modeli nga `AI_MODEL` (default `claude-opus-5-5`), streaming | Shpjegim natyral i sinjaleve |
 | Testim | **Vitest** (unit), **Playwright** (e2e), **fast-check** (property-based për indikatorët) | Besueshmëri |
 | Observability | **Pino** logs, **OpenTelemetry**, Sentry | Debug në prodhim |
-| Deploy | Docker Compose (dev), Vercel (web) + Fly.io/Railway (worker, DB, Redis) | |
+| Deploy | `pnpm build && pnpm start` në një server me disk. Me disa instanca: PostgreSQL + Redis + `WORKER=external` | |
 
 ---
 
@@ -96,7 +96,6 @@ cryptovision/
 │   ├── decisions/              # ADR-të
 │   ├── strategies/             # dokumentim i çdo strategjie + rezultate backtest
 │   └── api.md
-├── docker-compose.yml          # postgres+timescale, redis
 └── .env.example
 ```
 
@@ -415,9 +414,7 @@ Një detyrë konsiderohet **e kryer** vetëm kur:
 
 ```bash
 pnpm install
-docker compose up -d            # postgres+timescale, redis
-pnpm db:migrate && pnpm db:seed # skema + coin universe + historik fillestar
-pnpm dev                        # web + worker + realtime (turbo)
+pnpm dev                        # web + worker + DB i integruar (PGlite), migrimet aplikohen vetë
 pnpm test                       # vitest në të gjitha paketat
 pnpm test:e2e                   # playwright
 pnpm typecheck && pnpm lint
@@ -432,7 +429,7 @@ Puno **fazë pas faze**. Mos kalo në fazën tjetër pa plotësuar Definition of
 
 | Faza | Përmbajtja | Rezultati i verifikueshëm |
 |---|---|---|
-| **F0** | Monorepo, config, Docker, DB schema, env, CI | `pnpm dev` ngrihet; CI e gjelbër |
+| **F0** | Monorepo, config, DB schema, env, CI | `pnpm dev` ngrihet; CI e gjelbër |
 | **F1** | `packages/exchange` (Binance REST+WS), ingest candles, coin universe | Candle live për BTCUSDT në DB dhe në terminal |
 | **F2** | Chart bazë: candles, volume, timeframe switch, symbol search, live update, lazy history | Chart funksional në `/chart/BTCUSDT` |
 | **F3** | `packages/indicators` + overlay/pane indikatorësh në chart | 15+ indikatorë me teste referencë |
@@ -446,39 +443,48 @@ Puno **fazë pas faze**. Mos kalo në fazën tjetër pa plotësuar Definition of
 
 ---
 
-## 12b. Gjendja aktuale e implementimit (2026-10-17)
+## 12b. Gjendja aktuale e implementimit (2026-10-18)
 
-Aplikacioni punon në **mënyrë hibride** ([ADR 0004](docs/decisions/0004-worker-hybrid-mode.md)):
-plotësisht në browser pa server ([ADR 0001](docs/decisions/0001-client-side-first.md)), ose me llogari,
-sinkronizim dhe worker kur ka `DATABASE_URL` + `REDIS_URL`.
+`pnpm dev` nis platformën e plotë pa asnjë shërbim të jashtëm ([ADR 0005](docs/decisions/0005-self-contained-platform.md)):
+
+- **Databaza:** PGlite i integruar në `$CV_HOME/db`.
+- **Worker:** nis brenda serverit nga `instrumentation.ts`.
+- **Real-time:** bus në memorie.
+
+PostgreSQL dhe Redis mbeten opsionalë, për shkallëzim. `DATABASE_URL=off` jep mënyrën vetëm-lokal
+([ADR 0001](docs/decisions/0001-client-side-first.md), [ADR 0004](docs/decisions/0004-worker-hybrid-mode.md)).
 
 | Faza | Statusi | Shënime |
 |---|---|---|
-| F0 | ✅ | Monorepo pnpm, TS strict, Vitest, Playwright, Drizzle + Postgres (TimescaleDB opsionale), Dockerfile, docker-compose, GitHub Actions CI |
+| F0 | ✅ | Monorepo pnpm, TS strict, Vitest, Playwright, Drizzle mbi PGlite/PostgreSQL me migrime të integruara, GitHub Actions CI (PostgreSQL + PGlite) |
 | F1 | ✅ | `packages/exchange`: Binance REST/WS (browser + Node), CoinGecko, Fear & Greed, OKX derivate. Rilidhje dhe gap-fill. Bybit mungon |
 | F2 | ✅ | Grafik live, lazy history, kërkim simboli (Ctrl+K), layout 1/2/4, replay, screenshot |
 | F3 | ✅ | 25 indikatorë në grafik. Testet krahasojnë me `technicalindicators` |
 | F4 | ✅ | Undo/redo, magnet, stile, alert nga vizatimi. Persistencë lokale + sinkronizim në DB për përdoruesit me llogari |
-| F5 | ✅ | Regjimi, 19 faktorë (përfshirë derivatet), 6 strategji, plane rreziku me decimal.js |
-| F6 | ✅ | Backtest event-driven, walk-forward, Monte Carlo, Backtest Lab, gate për coin ([ADR 0002](docs/decisions/0002-backtest-gate.md)) |
-| F7 | ✅ | Paneli, Sinjalet + track record (lokal dhe në server), Raporti i coinit, Skaneri, faqja `/welcome` |
-| F8 | ✅ | Auth me 2FA ([ADR 0003](docs/decisions/0003-custom-auth.md)), portofoli dhe alertet të sinkronizuara, worker BullMQ, njoftime: aplikacion, browser, Web Push, Telegram, email, SSE |
-| F9 | ✅ | 31 mjete vizatimi (Gann, Fib fan/time, regresion, XABCD, Elliott, H&S, callout), derivate OKX, SMC, modele, shpjegim AI me Claude |
-| F10 | ◐ | i18n sq/en, temë e çelët, daltonizëm, PWA, CSP + headers, rate limit, audit log, pino. **Mungon:** OpenTelemetry/Sentry, deploy i automatizuar |
+| F5 | ✅ | Regjimi, 19 faktorë (përfshirë derivatet), 6 strategji, strategji custom pa kod ([ADR 0006](docs/decisions/0006-paper-trading-custom-strategies.md)), plane rreziku me decimal.js |
+| F6 | ✅ | Backtest event-driven (edhe për strategjitë custom), walk-forward, Monte Carlo, Backtest Lab, gate për coin ([ADR 0002](docs/decisions/0002-backtest-gate.md)) |
+| F7 | ✅ | Paneli, Sinjalet + track record, Raporti i coinit, Skaneri, Tregu (RRG, korrelacion, beta, volatilitet), `/welcome` |
+| F8 | ✅ | Auth me 2FA ([ADR 0003](docs/decisions/0003-custom-auth.md)), portofoli + paper trading (LIMIT/STOP, SL/TP, likuidim), alertet, worker, njoftime: aplikacion, browser, Web Push, Telegram, email, SSE |
+| F9 | ✅ | 31 mjete vizatimi, derivate OKX, SMC, modele, shpjegim AI me Claude |
+| F10 | ◐ | i18n sq/en, temë e çelët, daltonizëm, PWA, CSP + headers, rate limit, audit log, pino, çelës kriptimi i gjeneruar. **Mungon:** OpenTelemetry/Sentry, ESLint |
 
 **Kontratat aktuale** (ndryshohen vetëm me ADR):
 
 - `Signal`, `TradePlan` dhe `FactorResult` te `packages/core/src/types.ts`.
 - `Drawing` te `apps/web/lib/chart/drawing-types.ts` (`schemaVersion`).
 - `Snapshot`, `ScanRow`, `TrackedSignal` te `packages/engine/src/types.ts`.
-- Skema e DB-së te `packages/db/src/schema.ts`; çdo ndryshim kërkon `pnpm db:generate` dhe migrim të ri.
+- `CustomStrategyDef` (Zod) te `packages/signals/src/custom.ts`; `PaperOrder` te `packages/risk/src/paper.ts`.
+- Skema e DB-së te `packages/db/src/schema.ts`. Çdo ndryshim kërkon `pnpm db:generate`, i cili gjeneron SQL-në
+  dhe e përfshin te `migrations.gen.ts`. Skedari i gjeneruar commit-ohet bashkë me SQL-në.
 - Store-t e ruajtura `cv.*`, të versionuara. `chartUi` nuk sinkronizohet (specifik për pajisjen).
+- Dokumentet e gjendjes që sinkronizohen: `settings`, `screens`, `strategies`, `orders`, `tracked` (`stateKeys`).
 
 **Komandat reale:**
 
-- `pnpm dev`, `pnpm test`, `pnpm typecheck`, `pnpm build`, `pnpm test:e2e`
-- `pnpm services`, `pnpm db:migrate`, `pnpm db:generate`, `pnpm dev:worker`, `pnpm test:integration`
-- `docker compose up -d --build` (stack i plotë)
+- `pnpm dev` (platforma e plotë), `pnpm build && pnpm start`
+- `pnpm test` (111 teste, përfshirë DB-në mbi PGlite), `pnpm typecheck`, `pnpm test:e2e` (16 teste)
+- `pnpm db:generate`, `pnpm db:migrate`, `pnpm test:integration` (kundër PostgreSQL)
+- `pnpm worker` (vetëm me `WORKER=external` dhe PostgreSQL)
 - `pnpm backtest …`, `pnpm validate:oos`
 
 `pnpm db:seed` dhe `pnpm lint` nga §10–11 nuk ekzistojnë ende.

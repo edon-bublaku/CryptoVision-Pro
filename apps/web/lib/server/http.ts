@@ -55,7 +55,10 @@ export function route<P = Record<string, string>>(opts: Opts, handler: Handler<P
     try {
       checkOrigin(req);
       const ip = clientIp(req);
-      const db = getDb();
+      const db = await getDb().catch((e: unknown) => {
+        log.error({ err: String(e) }, "database unavailable");
+        return null;
+      });
       if (!db && !opts.noDb) throw new HttpError(503, "no_database", "Server storage is not configured");
       const rl = await rateLimit(`${req.nextUrl.pathname}:${ip}`, opts.rate ?? 120, 60);
       if (!rl.ok) throw new HttpError(429, "rate_limited", "Too many requests", { retryAfter: rl.retryAfterSec });

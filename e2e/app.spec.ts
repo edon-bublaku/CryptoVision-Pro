@@ -59,6 +59,33 @@ test("backtest lab runs the engine and reports metrics", async ({ page }) => {
   await expect(page.getByText("Monte Carlo (1000 simulime)")).toBeVisible();
 });
 
+test("strategy builder: load a preset, save it and backtest it alone", async ({ page }) => {
+  await acceptDisclaimer(page);
+  await page.goto("/backtest");
+  await page.getByRole("radio", { name: "Ndërtuesi i strategjive" }).click();
+  await page.getByLabel("Ngarko").selectOption({ label: "Donchian 20 breakout" });
+  await expect(page.getByText("Hyrje SHORT kur")).toBeVisible();
+  await page.getByRole("button", { name: "Ruaj" }).click();
+  await page.getByRole("button", { name: "Ekzekuto backtest" }).click();
+  await expect(page.getByText("Kurba e kapitalit")).toBeVisible({ timeout: 90_000 });
+  // Only the custom strategy traded.
+  await expect(page.getByRole("cell", { name: "Strategji custom" }).first()).toBeVisible();
+  await expect(page.getByRole("cell", { name: "Trend Pullback" })).toHaveCount(0);
+  // Saved strategies survive a reload.
+  await page.reload();
+  await page.getByRole("radio", { name: "Ndërtuesi i strategjive" }).click();
+  await expect(page.getByRole("option", { name: "Donchian 20 breakout" })).toHaveCount(2);
+});
+
+test("market intelligence: RRG, correlation matrix and risk table", async ({ page }) => {
+  await acceptDisclaimer(page);
+  await page.goto("/markets");
+  await expect(page.getByText("Grafiku i rotacionit relativ (RRG)")).toBeVisible();
+  await expect(page.getByText("Matrica e korrelacionit")).toBeVisible();
+  await expect(page.getByRole("cell", { name: "BTC", exact: true })).toBeVisible({ timeout: 60_000 });
+  await expect(page.getByText("Referenca")).toBeVisible();
+});
+
 test("portfolio: add a position with risk-based sizing", async ({ page }) => {
   await acceptDisclaimer(page);
   await page.goto("/portfolio");
@@ -72,4 +99,37 @@ test("portfolio: add a position with risk-based sizing", async ({ page }) => {
   // 1% of $10,000 = $100 at risk over a $5,000 stop distance (+ fees) ≈ 0.0195 BTC
   expect(pos.quantity).toBeGreaterThan(0.019);
   expect(pos.quantity).toBeLessThan(0.02);
+});
+
+test("paper trading: orders validate, fill on live prices and exit at the stop", async ({ page }) => {
+  await acceptDisclaimer(page);
+  await page.goto("/portfolio");
+  // A LIMIT buy above the market would fill at once: the form explains and blocks it.
+  await page.getByRole("button", { name: "Shto pozicion" }).click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByRole("radio", { name: "Paper · Limit" }).click();
+  await dialog.getByLabel("Çmimi i urdhrit").fill("10000000");
+  await dialog.getByLabel("Sasia").fill("0.01");
+  await expect(dialog.getByText("do të ekzekutohej menjëherë")).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Vendos urdhrin" })).toBeDisabled();
+  // A sensible LIMIT far below the market rests in the order book and can be cancelled.
+  await dialog.getByLabel("Çmimi i urdhrit").fill("1000");
+  await dialog.getByRole("button", { name: "Vendos urdhrin" }).click();
+  await expect(page.getByText("Urdhrat në pritje (paper trading)")).toBeVisible();
+  await page.getByRole("button", { name: "Anulo", exact: true }).click();
+  await expect(page.getByText("Urdhrat në pritje (paper trading)")).toHaveCount(0);
+
+  // The executor: an already-triggered order fills at the live price, then its stop (set above
+  // the market) closes it immediately.
+  await page.evaluate(() => {
+    const raw = JSON.parse(localStorage.getItem("cv.portfolio")!);
+    raw.state.orders = [{ id: crypto.randomUUID(), symbol: "BTCUSDT", side: "LONG", type: "LIMIT", price: 10_000_000, quantity: 0.01, stopLoss: 9_000_000, leverage: 1, createdAt: Date.now() }];
+    localStorage.setItem("cv.portfolio", JSON.stringify(raw));
+  });
+  await page.reload();
+  await expect(page.getByText("Urdhri u ekzekutua: LONG BTC")).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole("cell", { name: /BTC LONG PAPER SL/ })).toBeVisible({ timeout: 30_000 });
+  const closed = await page.evaluate(() => JSON.parse(localStorage.getItem("cv.portfolio")!).state.closed[0]);
+  expect(closed.exitReason).toBe("SL");
+  expect(closed.paper).toBe(true);
 });

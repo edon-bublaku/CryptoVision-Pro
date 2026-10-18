@@ -7,7 +7,11 @@ Platformë profesionale për analizë të kriptovalutave. Përfshin:
 - Backtest bar-pas-bari.
 - Grafik live me 31 mjete vizatimi.
 - Llogari me 2FA, sinkronizim mes pajisjeve, worker në server dhe njoftime (push, Telegram, email).
+- Inteligjencë tregu: grafik rotacioni (RRG), matricë korrelacioni, beta dhe volatilitet.
+- Ndërtues strategjish pa kod, të testuara me të njëjtin motor backtest.
+- Paper trading me urdhra LIMIT/STOP, SL/TP automatik dhe likuidim.
 - Shpjegim me AI (Claude) i analizës.
+- **Asnjë instalim shërbimesh:** `pnpm dev` nis gjithë platformën me PostgreSQL të integruar (PGlite).
 
 > ⚠️ **Jo këshillë financiare.** Sinjalet janë probabilistike. Tregtimi i kriptovalutave mbart rrezik
 > të lartë humbjeje. Lexoni [rezultatet reale të strategjive](docs/strategies/README.md) para se ta përdorni.
@@ -24,110 +28,112 @@ Platformë profesionale për analizë të kriptovalutave. Përfshin:
 | ↳ Mjetet e vizatimit | Magnet OHLC, Shift për vijë horizontale, undo/redo, kopjim (Ctrl+D), bllokim, fshehje, stil (ngjyrë, trashësi, vijë, mbushje, zgjatje), menu me klik të djathtë, **alert kur çmimi kalon vizatimin**. Ruhen për çdo simbol dhe mbeten kur ndërron timeframe |
 | ↳ Raporti | Verdikti 0–100, plani i tregtisë me madhësinë e pozicionit (sipas % rrezikut), shpjegim në gjuhë natyrore, skenarët bull/bear, backtest i strategjisë në atë coin, matrica MTF (15m→1w), faktorët, nivelet, struktura, order book live, tregtimet live |
 | **Sinjalet** | Skanim i top 20–100 coin-ave në Web Worker. Filtra: drejtimi, skori, R:R, strategjia. Karta sinjalesh me plan dhe backtest. Track record automatik (TP/SL) |
+| **Tregu** | Grafiku i rotacionit relativ (RRG) ndaj BTC me bishtat e 8 ditëve, matrica e korrelacionit e grupuar sipas ngjashmërisë, beta dhe korrelacioni me BTC, volatiliteti 30d, max drawdown 90d, kthimi për njësi volatiliteti, shpërndarja e tregut |
 | **Skaneri** | Ndërtues kriteresh (RSI, ADX, %B, kompresim BB, RVOL, distanca nga EMA-të / max 20-bar …), preset-e, skanime të ruajtura |
 | **Backtest** | Motori i njëjtë me sinjalet live. Tarifa, slippage, filtër HTF, kurba e kapitalit kundrejt blej-e-mbaj, drawdown, walk-forward, Monte Carlo (1000 simulime), tregtimet në grafik |
+| ↳ Ndërtuesi i strategjive | Rregulla LONG/SHORT pa kod mbi 30 seri (çmimi, EMA, RSI, MACD, Bollinger, ADX/DI, Stoch RSI, SuperTrend, Donchian, volumi relativ, CMF, MFI, OBV…) me operatorët `>`, `<`, kryqëzim lart/poshtë. Stop me ATR ose swing, konfluencë opsionale. Shembuj të gatshëm. Ruhen dhe sinkronizohen me llogarinë ([ADR 0006](docs/decisions/0006-paper-trading-custom-strategies.md)) |
 | **Portofoli** | Pozicione me PnL live, madhësi automatike sipas rrezikut, rreziku i hapur, alokimi, ekspozimi sipas sektorit, paralajmërime korrelacioni (ρ > 0.8), ditar me eksport CSV |
+| ↳ Paper trading | Urdhra Market / LIMIT / STOP me SL, TP dhe skadim (GTC, 1h, 24h, 7d). Validim që urdhri të mos ekzekutohet gabimisht menjëherë. Ekzekutim automatik me çmimin live, mbyllje në SL/TP dhe likuidim i vlerësuar me leverage. Ditari shënon arsyen e daljes (SL/TP/LIQ) |
 | **Alertet** | Çmim mbi/nën, ndryshim 24h, RSI mbi/nën, sinjal i ri aktiv, kalim i vizatimit. Njoftime në aplikacion, browser, Web Push, Telegram dhe email. Me llogari, alertet vlerësohen nga worker-i edhe kur browser-i është i mbyllur |
 | **Llogaria** | Profili, 2FA (TOTP + kode rezervë), sesionet aktive, ndryshimi i fjalëkalimit, kanalet e njoftimeve, fshirja e llogarisë |
 | **Cilësimet** | Shqip/English, temë e errët/e çelët, paletë për daltonizëm, profili i rrezikut, kapitali, leverage, tarifa, Telegram, backup/import JSON |
 
 ## Nisja
 
-Kërkesat: Node ≥ 20 dhe pnpm ≥ 10. Aplikacioni ka dy mënyra pune.
-
-### 1. Vetëm lokal (pa server)
+Kërkesat: **Node ≥ 20** dhe **pnpm ≥ 10**. Asgjë tjetër.
 
 ```bash
 pnpm install
-pnpm dev                     # http://localhost:3000
+pnpm dev          # http://localhost:3000
 ```
 
-Nuk ka nevojë për API keys apo databazë. Të dhënat vijnë nga endpoint-et publike të Binance
-(`data-api.binance.vision`), që funksionojnë edhe ku `api.binance.com` është i bllokuar.
-Vizatimet, portofoli dhe alertet ruhen në browser.
+Kaq. Kjo komandë nis gjithë platformën: llogari me 2FA, sinkronizim, worker-in 24/7 (skanime, alerte,
+track record, paper trading) dhe njoftimet në kohë reale. Databaza është PostgreSQL i vërtetë i kompiluar
+në WebAssembly ([PGlite](https://pglite.dev)) dhe ruhet në `~/.cryptovision/db`. Migrimet aplikohen
+vetë në nisje ([ADR 0005](docs/decisions/0005-self-contained-platform.md)).
 
-### 2. Full stack (llogari, sinkronizim, worker, njoftime)
-
-Me Docker:
+Për prodhim:
 
 ```bash
-cp .env.example .env         # vendos ENCRYPTION_KEY=$(openssl rand -hex 32)
-docker compose up -d --build # TimescaleDB + Redis + worker + web → http://localhost:3000
+pnpm build && pnpm start
 ```
 
-Pa Docker (Postgres 16 dhe Redis të instaluar lokalisht):
+### Konfigurimi (opsional)
 
-```bash
-pnpm services                # nis Postgres + Redis (scripts/dev-services.sh)
-pnpm db:migrate              # migrimet Drizzle (+ hypertable TimescaleDB nëse ekziston)
-pnpm dev:worker              # skanime, track record, alerte në server
-pnpm dev                     # web
-```
+Kopjoni `.env.example` në `apps/web/.env.local` vetëm nëse ju duhet diçka nga kjo tabelë:
 
-Kur `DATABASE_URL` mungon, aplikacioni kthehet automatikisht në mënyrën lokale.
+| Variabla | Për çfarë |
+|---|---|
+| `CV_HOME` | Dosja e të dhënave (default `~/.cryptovision`): databaza e integruar dhe çelësi i kriptimit |
+| `DATABASE_URL` | `postgres://…` për PostgreSQL të jashtëm (TimescaleDB opsionale), ose `off` për mënyrën vetëm-lokal (gjithçka në browser) |
+| `REDIS_URL` | Vetëm për disa instanca serveri ose për worker në proces të veçantë (BullMQ) |
+| `WORKER` | `inprocess` (default), `external` (`pnpm worker`, kërkon PostgreSQL) ose `off` |
+| `ENCRYPTION_KEY` | Çelësi AES-256-GCM për sekretet e 2FA. Kur mungon, gjenerohet një herë në `$CV_HOME/secret.key` (leje 0600). I detyrueshëm vetëm me PostgreSQL të jashtëm në prodhim |
+| `ANTHROPIC_API_KEY`, `AI_MODEL` | Shpjegimi me AI në raportin e coinit (default `claude-opus-5-5`) |
+| `TELEGRAM_BOT_TOKEN` | Bot-i i platformës për alertet në Telegram |
+| `RESEND_API_KEY`, `EMAIL_FROM` | Alerte me email |
+| `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` | Web Push (`pnpm --filter @cv/worker vapid` krijon çiftin) |
+| `SCAN_TIMEFRAMES`, `SCAN_SIZE` | Çfarë skanon worker-i (default `1h,4h,1d`, 60 coin) |
 
-| Variabla | E detyrueshme | Për çfarë |
-|---|---|---|
-| `DATABASE_URL`, `REDIS_URL` | për full stack | llogari, sinkronizim, rate limit, SSE |
-| `ENCRYPTION_KEY` | në prodhim | AES-256-GCM për sekretet e 2FA (`openssl rand -hex 32`) |
-| `ANTHROPIC_API_KEY`, `AI_MODEL` | jo | shpjegimi me AI në raportin e coinit (default `claude-opus-5-5`) |
-| `TELEGRAM_BOT_TOKEN` | jo | bot-i i platformës për alertet në Telegram |
-| `RESEND_API_KEY`, `EMAIL_FROM` | jo | alerte me email |
-| `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` | jo | Web Push (`pnpm --filter @cv/worker vapid` krijon çiftin) |
-| `SCAN_TIMEFRAMES`, `SCAN_SIZE` | jo | çfarë skanon worker-i (default `1h,4h,1d`, 60 coin) |
+Databaza e integruar punon nga një proces i vetëm. Për disa instanca të serverit pas një load balancer,
+përdorni `DATABASE_URL` me PostgreSQL dhe `REDIS_URL`.
 
 ### Komandat
 
 | Komanda | Çfarë bën |
 |---|---|
-| `pnpm test` | 74 teste njësie (indikatorët kundrejt `technicalindicators`, motori, rreziku, backtest-i, track record, TOTP sipas RFC 6238, kriptimi, alertet e worker-it) |
-| `pnpm test:integration` | + 9 teste kundër Postgres të vërtetë (repo-t e DB) |
+| `pnpm test` | 111 teste: indikatorët kundrejt `technicalindicators`, motori, rreziku, paper trading, analitika (korrelacion, beta, RRG), strategjitë custom, backtest-i, TOTP sipas RFC 6238, kriptimi, alertet e worker-it dhe repo-t e DB-së mbi PGlite |
+| `pnpm test:integration` | Të njëjtat teste, me repo-t e DB-së kundër PostgreSQL (`TEST_DATABASE_URL`) |
 | `pnpm typecheck` | TypeScript strict në të gjitha paketat |
-| `pnpm build` | Build prodhimi (Next.js 16, `output: standalone`) |
-| `pnpm test:e2e` | 13 teste Playwright: UI, API (regjistrim → 2FA → sesione), sinkronizim vizatimesh mes dy pajisjeve |
+| `pnpm build` / `pnpm start` | Build dhe server prodhimi (Next.js 16) |
+| `pnpm test:e2e` | 16 teste Playwright: UI, ndërtuesi i strategjive, tregu, paper trading, API (regjistrim → 2FA → sesione → sinkronizim), sinkronizim vizatimesh mes dy pajisjeve |
 | `pnpm db:migrate` / `pnpm db:generate` | Zbato / gjenero migrimet |
-| `pnpm --filter @cv/worker once` | Një xhiro e vetme e skanimit + track record |
+| `pnpm worker` | Worker në proces të veçantë (vetëm me `WORKER=external` dhe PostgreSQL) |
 | `pnpm backtest --symbol ETHUSDT --tf 4h --bars 3000 [--strategy breakout_volume]` | Backtest nga terminali |
 | `pnpm validate:oos` | Validim jashtë mostrës në 12 coin × 3 timeframe |
 
-CI (`.github/workflows/ci.yml`) ekzekuton typecheck, testet njësie + integrimi me Postgres/Redis,
-migrimet, build-in dhe Playwright kundër build-it standalone.
+CI (`.github/workflows/ci.yml`) ekzekuton typecheck, testet me PostgreSQL dhe me PGlite, migrimet,
+build-in dhe Playwright kundër serverit të prodhimit.
 
 ## Backend
 
 | Pjesa | Detajet |
 |---|---|
 | **Llogaritë** | Regjistrim/hyrje me fjalëkalim (scrypt), sesione në DB (ruhet vetëm SHA-256 i token-it, cookie `__Host-` httpOnly), bllokim pas 5 tentativave, 2FA TOTP me kode rezervë, menaxhim sesionesh, ndryshim fjalëkalimi, fshirje llogarie, audit log ([ADR 0003](docs/decisions/0003-custom-auth.md)) |
-| **Sinkronizimi** | Vizatimet, portofoli, alertet, cilësimet dhe skanimet e ruajtura ndjekin përdoruesin në çdo pajisje. Bashkim i zgjuar në hyrje, versione optimiste për dokumentet (409 → merret kopja e serverit) |
-| **Worker** | BullMQ: skanim i universit për çdo timeframe, ndjekje TP/SL e sinjaleve, alerte çmimi live (WebSocket), RSI dhe "sinjal i ri" ([ADR 0004](docs/decisions/0004-worker-hybrid-mode.md)) |
-| **Real-time** | `/api/events` (SSE) përcjell alertet dhe skanimet e reja nga Redis pub/sub |
+| **Databaza** | PGlite i integruar (default) ose PostgreSQL/TimescaleDB, me të njëjtën skemë Drizzle. Migrimet janë pjesë e kodit dhe aplikohen automatikisht ([ADR 0005](docs/decisions/0005-self-contained-platform.md)) |
+| **Sinkronizimi** | Vizatimet, portofoli, urdhrat paper, alertet, cilësimet, skanimet dhe strategjitë e ruajtura ndjekin përdoruesin në çdo pajisje. Bashkim i zgjuar në hyrje, versione optimiste për dokumentet (409 → merret kopja e serverit) |
+| **Worker** | Brenda serverit web (default) ose si proces më vete me BullMQ: skanim i universit për çdo timeframe, ndjekje TP/SL e sinjaleve, alerte çmimi live (WebSocket), RSI dhe "sinjal i ri" ([ADR 0004](docs/decisions/0004-worker-hybrid-mode.md)) |
+| **Real-time** | `/api/events` (SSE) përcjell alertet dhe skanimet e reja. Bus në memorie kur worker-i është në të njëjtin proces, Redis pub/sub kur është i ndarë |
 | **Njoftime** | Në aplikacion, browser, Web Push, Telegram, email |
 | **Derivate** | Funding, open interest dhe long/short ratio nga OKX, si faktor në motorin e sinjaleve |
 | **AI** | `/api/ai/explain` transmeton shpjegimin nga Claude. AI vetëm shpjegon numrat e motorit, nuk i shpik |
-| **Siguria** | CSP dhe headers sigurie, kontroll origin për kërkesat që ndryshojnë gjendje, rate limit me Redis, validim Zod kudo |
+| **Siguria** | CSP dhe headers sigurie, kontroll origin për kërkesat që ndryshojnë gjendje, rate limit (Redis ose në memorie), validim Zod kudo, çelës kriptimi i gjeneruar automatikisht |
 
 ## Arkitektura
 
 ```
 apps/web                  Next.js 16 · React 19 · Tailwind v4 · Zustand · TanStack Query
-  ├─ app/*                faqet (/, /welcome, /chart, /signals, /screener, /backtest, /portfolio, /alerts, /settings, /account, /login)
+  ├─ app/*                faqet (/, /welcome, /chart, /signals, /screener, /markets, /backtest, /portfolio, /alerts, /settings, /account, /login)
   ├─ app/api/*            23 route handlers (auth, sync, signals, alerts, derivatives, ai, push, events)
   ├─ components/chart     ChartPanel, toolbar, raporti, stilet e vizatimeve
   ├─ lib/chart            CoordMapper, DrawingController, 31 renderer-a vizatimesh (series primitives)
   ├─ lib/data             Binance REST + WebSocket i multipleksuar (rilidhje, gap-fill)
-  ├─ lib/store            store-t (settings, drawings + undo/redo, portfolio, alerts, auth)
+  ├─ lib/store            store-t (settings, drawings + undo/redo, portfolio + urdhrat paper, strategies, alerts, auth)
+  ├─ components/layout    AlertEngine, PaperEngine (ekzekutimi i urdhrave), SyncManager
+  ├─ instrumentation.ts   hap databazën dhe nis worker-in brenda serverit
   └─ workers              scan.worker, backtest.worker
-apps/worker               BullMQ: skanime, track record, alerte, njoftime
+apps/worker               skanime, track record, alerte, njoftime (në proces ose BullMQ)
 packages
   ├─ core                 tipet, timeframes, formatimi, matematika
   ├─ indicators           indikatorë pure + struktura (pivots, S/R, BOS/CHoCH, FVG, OB), divergjenca, modele
-  ├─ risk                 planet SL/TP, madhësia e pozicionit (decimal.js), Kelly, likuidimi
-  ├─ signals              konteksti, regjimi, 19 faktorë (përfshirë derivatet), 6 strategji
+  ├─ risk                 planet SL/TP, madhësia e pozicionit (decimal.js), Kelly, likuidimi, paper trading
+  ├─ signals              konteksti, regjimi, 19 faktorë (përfshirë derivatet), 6 strategji + strategji custom
+  ├─ analytics            korrelacion, beta, volatilitet, drawdown, rotacion relativ (RRG)
   ├─ backtest             motor event-driven, metrika, walk-forward, Monte Carlo
   ├─ exchange             Binance REST/WS, CoinGecko, Fear & Greed, OKX derivate (browser + Node)
   ├─ engine               analiza e plotë + gate-i i backtest-it, i përbashkët për web dhe worker
-  ├─ db                   Drizzle schema, migrime, repo-t
-  └─ server               env (Zod), kriptim, TOTP, Redis, rate limit, njoftime, logger
+  ├─ db                   Drizzle schema, migrime të integruara, PGlite / PostgreSQL, repo-t
+  └─ server               env (Zod), kriptim, TOTP, bus (memorie/Redis), rate limit, njoftime, logger
 ```
 
 Vendimet kryesore janë në [`docs/decisions`](docs/decisions). Rregullat për zhvillim (për njerëz dhe

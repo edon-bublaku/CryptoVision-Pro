@@ -23,5 +23,8 @@
   },
   "devDependencies": {
     "@types/web-push": "^3.6.4"
+  },
+  "exports": {
+    "./runtime": "./src/runtime.ts"
   }
 }

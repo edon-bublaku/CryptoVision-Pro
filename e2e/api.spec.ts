@@ -52,13 +52,22 @@ test.describe.serial("auth, 2FA and sync API", () => {
     const badDrawing = await request.put("/api/sync/drawings/BTCUSDT", { data: { data: [{ ...drawing, points: "x" }] } });
     expect(badDrawing.status()).toBe(400);
     const pos = { id: crypto.randomUUID(), symbol: "ETHUSDT", side: "LONG", entry: 2400.123456, quantity: 0.5, stopLoss: 2300, leverage: 1, openedAt: Date.now() };
-    expect((await request.put("/api/sync/portfolio", { data: { positions: [pos], closed: [] } })).ok()).toBe(true);
+    const paperClosed = { ...pos, id: crypto.randomUUID(), paper: true, exit: 2300, closedAt: Date.now(), pnl: -50.06, r: -1, exitReason: "SL" };
+    expect((await request.put("/api/sync/portfolio", { data: { positions: [{ ...pos, paper: true }], closed: [paperClosed] } })).ok()).toBe(true);
+    const order = { id: crypto.randomUUID(), symbol: "BTCUSDT", side: "LONG", type: "LIMIT", price: 50000, quantity: 0.01, leverage: 1, createdAt: Date.now() };
+    expect((await request.put("/api/sync/state/orders", { data: { value: { orders: [order] }, baseVersion: null } })).ok()).toBe(true);
+    const strategy = { id: "s1", name: "RSI", long: [{ left: { series: "rsi" }, op: "<", right: { value: 30 } }], short: [], stop: { type: "atr", mult: 2 }, confluence: false };
+    expect((await request.put("/api/sync/state/strategies", { data: { value: { saved: [strategy] }, baseVersion: null } })).ok()).toBe(true);
     const alert = { id: crypto.randomUUID(), symbol: "BTCUSDT", type: "price_above", value: 1e6, once: true, active: true, createdAt: Date.now() };
     expect((await request.put("/api/sync/alerts", { data: { alerts: [alert] } })).ok()).toBe(true);
     const all = await (await request.get("/api/sync")).json();
     expect(all.state.settings.value).toEqual({ lang: "en" });
     expect(all.drawings.BTCUSDT.data[0].id).toBe("d1");
     expect(all.portfolio.positions[0].entry).toBeCloseTo(2400.123456, 6);
+    expect(all.portfolio.positions[0].paper).toBe(true);
+    expect(all.portfolio.closed[0]).toMatchObject({ paper: true, exitReason: "SL", r: -1 });
+    expect(all.state.orders.value.orders[0].price).toBe(50000);
+    expect(all.state.strategies.value.saved[0].name).toBe("RSI");
     expect(all.alerts[0].value).toBe(1e6);
   });
 

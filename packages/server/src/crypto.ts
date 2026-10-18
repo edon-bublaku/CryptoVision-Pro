@@ -1,4 +1,7 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes, scrypt as scryptCb, timingSafeEqual, type ScryptOptions } from "node:crypto";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname } from "node:path";
+import { secretKeyPath } from "./paths";
 import { env } from "./env";
 
 function scrypt(password: string, salt: Buffer, keylen: number, opts: ScryptOptions): Promise<Buffer> {
@@ -34,12 +37,30 @@ export function sha256(s: string): string {
   return createHash("sha256").update(s).digest("hex");
 }
 
-function key(): Buffer {
-  const raw = env().ENCRYPTION_KEY;
-  if (!raw) {
-    // Development fallback: derived, stable per DATABASE_URL, never used in production (env() enforces it).
-    return createHash("sha256").update(`cv-dev-key:${env().DATABASE_URL ?? "local"}`).digest();
+let fileKey: string | undefined;
+
+/**
+ * Without ENCRYPTION_KEY, a random key is created once and kept next to the embedded database
+ * (mode 0600), so a fresh install is secure without configuration. External PostgreSQL in
+ * production must set ENCRYPTION_KEY explicitly (env() enforces it).
+ */
+function generatedKey(): string {
+  if (fileKey) return fileKey;
+  const path = secretKeyPath();
+  if (!existsSync(path)) {
+    mkdirSync(dirname(path), { recursive: true });
+    try {
+      writeFileSync(path, randomBytes(32).toString("hex"), { mode: 0o600, flag: "wx" });
+    } catch {
+      /* another process created it first */
+    }
   }
+  fileKey = readFileSync(path, "utf8").trim();
+  return fileKey;
+}
+
+function key(): Buffer {
+  const raw = env().ENCRYPTION_KEY ?? generatedKey();
   const buf = /^[0-9a-f]{64}$/i.test(raw) ? Buffer.from(raw, "hex") : Buffer.from(raw, "base64");
   if (buf.length !== 32) throw new Error("ENCRYPTION_KEY must decode to 32 bytes");
   return buf;

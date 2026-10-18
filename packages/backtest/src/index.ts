@@ -2,10 +2,12 @@ import type { BacktestSummary, Candle, Side, Timeframe } from "@cv/core";
 import { HIGHER_TIMEFRAME, resample, seededRandom, TIMEFRAME_SECONDS } from "@cv/core";
 import { buildTradePlan, type RiskConfig } from "@cv/risk";
 import { supportResistance, type Level } from "@cv/indicators";
-import { buildContext, evaluateAt, trendScore, type StrategyId } from "@cv/signals";
+import { buildContext, evaluateAt, trendScore, type Strategy, type StrategyId } from "@cv/signals";
 
 export interface BacktestConfig {
   strategies?: StrategyId[];
+  /** User-defined strategies (built with `buildCustomStrategy`); pass `strategies: []` to test them alone. */
+  custom?: Strategy[];
   initialEquity?: number;
   /** % of equity risked per trade. */
   riskPct?: number;
@@ -244,7 +246,7 @@ export function runBacktest(candles: readonly Candle[], config: BacktestConfig =
         levels = supportResistance(candles.slice(Math.max(0, i - 300), i + 1));
         levelsAt = i;
       }
-      const ev = evaluateAt(ctx, i, { strategies: cfg.strategies, htfScore, levels });
+      const ev = evaluateAt(ctx, i, { strategies: cfg.strategies, custom: cfg.custom, htfScore, levels });
       const htfConflict = htfScore !== undefined && ev.setup && (ev.setup.side === "LONG" ? htfScore < -0.2 : htfScore > 0.2);
       if (ev.setup && !htfConflict && (cfg.allowShort || ev.setup.side === "LONG")) {
         const plan = buildTradePlan({

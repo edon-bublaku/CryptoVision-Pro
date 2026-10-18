@@ -18,6 +18,8 @@ export interface PositionInput {
   closedAt?: Date | null;
   pnl?: string | null;
   r?: number | null;
+  paper?: boolean;
+  exitReason?: "MANUAL" | "SL" | "TP" | "LIQ" | null;
 }
 
 export async function listPositions(db: Db, userId: string): Promise<{ open: PositionRow[]; closed: PositionRow[] }> {

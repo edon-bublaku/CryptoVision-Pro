@@ -7,6 +7,8 @@ export interface Health {
   ok: boolean;
   db: boolean;
   redis: boolean;
+  realtime: boolean;
+  dbMode?: "postgres" | "embedded" | "memory" | "off";
   worker: boolean;
   ai: boolean;
   telegram: boolean;
@@ -39,7 +41,7 @@ interface AuthState {
   setSync: (s: AuthState["syncStatus"]) => void;
 }
 
-const OFFLINE: Health = { ok: false, db: false, redis: false, worker: false, ai: false, telegram: false, email: false, push: null };
+const OFFLINE: Health = { ok: false, db: false, redis: false, realtime: false, worker: false, ai: false, telegram: false, email: false, push: null };
 
 /** Server capabilities + session. Without a server DB the app stays in local-only mode. */
 export const useAuth = create<AuthState>((set) => ({

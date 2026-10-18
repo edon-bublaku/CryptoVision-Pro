@@ -80,7 +80,7 @@ export default function ScreenerPage() {
         <div className="space-y-4">
           <Card className="p-4">
             <div className="flex items-end gap-2">
-              <Field label={t("common.timeframe")}>
+              <Field label={t("common.timeframe")} group>
                 <Segmented value={tf} onChange={setTf} options={(["15m", "1h", "4h", "1d"] as Timeframe[]).map((x) => ({ value: x, label: x }))} />
               </Field>
               <Button variant="primary" onClick={() => run(tf)} disabled={!!progress}>

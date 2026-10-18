@@ -1,5 +1,5 @@
-import { getDb, pingDb } from "@cv/db";
-import { env, getRedis, pushEnabled } from "@cv/server";
+import { activeDbMode, getDb, pingDb } from "@cv/db";
+import { busKind, env, getRedis, hasFlag, pushEnabled } from "@cv/server";
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -7,25 +7,21 @@ export const dynamic = "force-dynamic";
 /** Feature discovery for the client: which server capabilities are available right now. */
 export async function GET() {
   const e = env();
-  const db = getDb();
+  const db = await getDb().catch(() => null);
   const dbOk = db ? await pingDb(db) : false;
   const redis = getRedis();
   let redisOk = false;
-  let worker = false;
-  if (redis) {
-    try {
-      redisOk = (await redis.ping()) === "PONG";
-      worker = !!(await redis.get("cv:worker:heartbeat"));
-    } catch {
-      redisOk = false;
-    }
-  }
+  if (redis) redisOk = await redis.ping().then((r) => r === "PONG", () => false);
+  // Without Redis the realtime bus is in-process and always available.
+  const realtime = busKind() === "memory" || redisOk;
   return NextResponse.json(
     {
       ok: true,
       db: dbOk,
+      dbMode: activeDbMode(),
       redis: redisOk,
-      worker,
+      realtime,
+      worker: realtime && (await hasFlag("cv:worker:heartbeat")),
       ai: !!e.ANTHROPIC_API_KEY,
       telegram: !!e.TELEGRAM_BOT_TOKEN,
       email: !!e.RESEND_API_KEY,
