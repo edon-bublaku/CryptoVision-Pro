@@ -56,7 +56,7 @@ jobs:
         run: |
           (pnpm mock:binance > mock-binance.log 2>&1 &)
           (BINANCE_TESTNET_SPOT_URL=http://127.0.0.1:9911 BINANCE_TESTNET_FUTURES_URL=http://127.0.0.1:9911 pnpm start > server.log 2>&1 &)
-          npx wait-on http://localhost:3000/api/health http://127.0.0.1:9911/api/v3/time
+          npx wait-on --timeout 120000 http-get://localhost:3000/api/health http-get://127.0.0.1:9911/api/v3/time
           BASE_URL=http://localhost:3000 pnpm exec playwright test
       - name: Database tests on embedded PGlite
         run: TEST_DATABASE_URL= pnpm exec vitest run packages/db

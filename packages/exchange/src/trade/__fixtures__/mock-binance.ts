@@ -174,10 +174,12 @@ export function createMockBinance(o: MockOptions) {
     const server = createServer((req, res) => {
       const hdrs: Record<string, string> = {};
       for (const [k, v] of Object.entries(req.headers)) if (typeof v === "string") hdrs[k] = v;
-      const r = handle(req.method ?? "GET", `http://localhost${req.url}`, hdrs);
+      // HEAD is answered like GET without a body (readiness probes such as wait-on use HEAD).
+      const head = req.method === "HEAD";
+      const r = handle(head ? "GET" : (req.method ?? "GET"), `http://localhost${req.url}`, hdrs);
       if (r === "network_error") return void req.socket.destroy();
       res.writeHead(r.status, { "content-type": "application/json" });
-      res.end(JSON.stringify(r.body));
+      res.end(head ? undefined : JSON.stringify(r.body));
     });
     return new Promise((resolve) => server.listen(port, "127.0.0.1", () => resolve({ server, url: `http://127.0.0.1:${(server.address() as { port: number }).port}` })));
   }
