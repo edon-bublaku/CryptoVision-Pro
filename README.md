@@ -1,5 +1,9 @@
 # CryptoVision Pro
 
+[![CI](https://github.com/edon-bublaku/CryptoVision-Pro/actions/workflows/ci.yml/badge.svg)](https://github.com/edon-bublaku/CryptoVision-Pro/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/edon-bublaku/CryptoVision-Pro)](https://github.com/edon-bublaku/CryptoVision-Pro/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 Platformë profesionale për analizë të kriptovalutave. Përfshin:
 
 - **Rekomandime për sot:** portofol model sipas regjimit të tregut (sa të investosh, sa cash), coin-at më të mirë pa korrelim të tepërt, peshat, plani i secilit dhe backtest-i historik i rekomanduesit.
@@ -20,6 +24,20 @@ Platformë profesionale për analizë të kriptovalutave. Përfshin:
 
 > ⚠️ **Jo këshillë financiare.** Sinjalet janë probabilistike. Tregtimi i kriptovalutave mbart rrezik
 > të lartë humbjeje. Lexoni [rezultatet reale të strategjive](docs/strategies/README.md) para se ta përdorni.
+
+## Pamje
+
+![Paneli](docs/screenshots/dashboard.png)
+
+| Rekomandimet | Grafiku + raporti i coin-it |
+|---|---|
+| ![Rekomandimet](docs/screenshots/recommendations.png) | ![Grafiku](docs/screenshots/chart.png) |
+| **CV Rating** | **Krahasimi** |
+| ![CV Rating](docs/screenshots/rating.png) | ![Krahaso](docs/screenshots/compare.png) |
+| **Sezonaliteti** | **Mobile** |
+| ![Sezonaliteti](docs/screenshots/seasonality.png) | <img src="docs/screenshots/mobile-dashboard.png" alt="Mobile" width="260"> |
+
+Screenshot-et janë marrë me të dhëna live nga Binance më 18 tetor 2026; numrat ndryshojnë çdo ditë.
 
 ## Çfarë bën
 
@@ -168,3 +186,14 @@ për Claude Code) janë në [`CLAUDE.md`](CLAUDE.md).
 - Validimi jashtë mostrës tregon **profit factor 0.71–0.75**. Me fjalë të tjera, strategjitë klasike TA
   **nuk kanë dëshmuar avantazh** në këtë periudhë. Përdoreni aplikacionin për analizë, disiplinë rreziku dhe
   vendime të informuara, jo si makineri fitimi.
+
+## Kontributi, siguria dhe licenca
+
+- Si të kontribuosh: [`CONTRIBUTING.md`](CONTRIBUTING.md). Ndryshimet sipas versioneve: [`CHANGELOG.md`](CHANGELOG.md).
+- Raportimi i dobësive të sigurisë: [`SECURITY.md`](SECURITY.md).
+- Licenca: [MIT](LICENSE).
+
+> **CryptoVision Pro** është mjet analitik dhe edukativ. Sinjalet, skorët dhe planet e tregtimit gjenerohen
+> automatikisht nga modele statistikore dhe teknike dhe **nuk përbëjnë këshillë financiare, investuese apo
+> tregtare**. Performanca e kaluar nuk garanton rezultate të ardhshme. Tregtimi i kriptovalutave, veçanërisht
+> me leverage, mbart rrezik të lartë humbjeje të pjesshme ose të plotë të kapitalit.

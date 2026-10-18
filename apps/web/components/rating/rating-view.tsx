@@ -115,7 +115,7 @@ function RatingAlertButton({ symbol, score }: { symbol: string; score: number })
       size="xs"
       variant="ghost"
       disabled={exists}
-      className="-ml-2"
+      className="-ml-2 h-auto min-h-7 max-w-full justify-start py-1 text-left whitespace-normal"
       onClick={() => {
         add({ symbol, type, value, once: true });
         toast({ title: t("alerts.created"), body: label, tone: "success" });

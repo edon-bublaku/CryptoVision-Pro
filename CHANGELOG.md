@@ -1,0 +1,51 @@
+# Changelog
+
+Formati ndjek [Keep a Changelog](https://keepachangelog.com/) dhe versionet ndjekin [SemVer](https://semver.org/).
+
+## [1.0.0] — 2026-10-18
+
+Publikimi i parë i plotë. `pnpm install && pnpm dev` nis gjithë platformën pa asnjë shërbim të jashtëm.
+
+### Investimi
+- **CV Rating 0–100** për çdo coin: 8 shtylla, 25 metrika me pesha, notë A+…F, vendim, besueshmëri dhe
+  preset-e peshash (të balancuara, të kalibruara, trend, momentum, konservative, të personalizuara).
+  Validim historik mbi 30 coin që nga 2021 ([ADR 0007](docs/decisions/0007-cv-rating.md)).
+- **Plani i investimit** për çdo coin: hyrje në shkallë, stop-loss, TP1–3 me R:R, madhësia e pozicionit sipas
+  % të rrezikut dhe rregullat e daljes.
+- **Rekomandimet:** portofol model sipas regjimit të tregut, me kufij korrelacioni dhe volatiliteti dhe
+  riprodhim historik ([ADR 0008](docs/decisions/0008-recommender.md)).
+- **Portofoli dhe paper trading:** urdhra LIMIT/STOP, SL/TP automatik, likuidim, ekspozim sipas sektorit,
+  paralajmërime korrelacioni.
+- **Ditari i tregtimit:** win rate, profit factor, pritshmëria në R, kurba e kapitalit, drawdown, seritë dhe ndarjet.
+
+### Analiza
+- **Grafik live** (Lightweight Charts v5): 25 indikatorë, 31 mjete vizatimi, undo/redo, magnet, layout 1/2/4,
+  replay, analizë automatike (S/R, BOS/CHoCH, Order Blocks, FVG, Volume Profile, Fibonacci).
+- **Sinjale** me konfluencë nga 19 faktorë dhe 6 strategji, filtër i timeframe-it më të lartë, gate backtest-i
+  për coin ([ADR 0002](docs/decisions/0002-backtest-gate.md)) dhe track record automatik.
+- **Skaneri**, **Tregu** (RRG, korrelacion, beta, volatilitet), **Krahaso** (2–4 coin) dhe **Sezonaliteti**
+  (kthimet mujore sipas viteve, ditët e javës, rëniet historike).
+- **Derivate OKX** (funding, open interest, long/short) dhe **shpjegim me AI** (Claude) i analizës.
+
+### Mjetet
+- **Backtest Lab** event-driven me tarifa, slippage, walk-forward dhe Monte Carlo; ndërtues strategjish pa kod
+  ([ADR 0006](docs/decisions/0006-paper-trading-custom-strategies.md)).
+- **Kalkulatorët:** madhësia e pozicionit, DCA dhe mesatarja, leverage/likuidimi, objektivat R:R, rritja e
+  kapitalit dhe DCA në histori kundrejt blerjes së menjëhershme.
+- **Alertet:** çmim, ndryshim 24h, RSI, CV Rating, sinjal i ri, kalim i vizatimit; njoftime në aplikacion,
+  browser, Web Push, Telegram dhe email; vlerësim 24/7 nga worker-i ([ADR 0009](docs/decisions/0009-rating-alerts-and-quality-gates.md)).
+
+### Platforma
+- Llogari me 2FA TOTP, sesione të revokueshme dhe sinkronizim mes pajisjeve ([ADR 0003](docs/decisions/0003-custom-auth.md)).
+- PostgreSQL i integruar (PGlite), worker brenda procesit dhe bus në memorie; PostgreSQL + Redis opsionalë
+  për shkallëzim ([ADR 0005](docs/decisions/0005-self-contained-platform.md)).
+- Shqip/English, temë e errët/e çelët, paletë për daltonizëm, pa animacione, pamje kompakte, PWA, navigim i
+  grupuar, paleta e komandave (Ctrl/⌘ K) dhe menu "Më shumë" në mobile.
+- Cilësia: TypeScript strict, ESLint, 158 teste unit, 31 teste e2e, kontrolle WCAG 2.1 AA (axe) dhe responsive
+  (375/768/1440 px) në CI.
+
+### Rezultatet e ndershme
+- Validimi jashtë mostrës i strategjive klasike jep profit factor 0.71–0.75: **nuk kanë dëshmuar avantazh**.
+  Detajet: [`docs/strategies/README.md`](docs/strategies/README.md) dhe [`docs/strategies/rating.md`](docs/strategies/rating.md).
+
+[1.0.0]: https://github.com/edon-bublaku/CryptoVision-Pro/releases/tag/v1.0.0
