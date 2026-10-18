@@ -81,3 +81,44 @@ test("rating alerts: create a CV Rating threshold alert", async ({ page }) => {
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("cv.alerts")!).state.alerts[0]);
   expect(saved).toMatchObject({ type: "rating_above", value: 60, active: true });
 });
+
+test("journal: statistics from closed trades, with filters and an honest empty state", async ({ page }) => {
+  await acceptDisclaimer(page);
+  await page.goto("/journal");
+  await expect(page.getByText("Ende nuk ka trade të mbyllura")).toBeVisible();
+  await page.evaluate(() => {
+    const base = Date.UTC(2026, 5, 1);
+    const mk = (i: number, pnl: number, r: number, paper: boolean) => ({ id: `j${i}`, symbol: "BTCUSDT", side: "LONG", entry: 100, exit: 100 + r, quantity: 1, leverage: 1, openedAt: base + i * 86_400_000, closedAt: base + i * 86_400_000 + 3_600_000, pnl, r, paper, exitReason: pnl > 0 ? "TP" : "SL" });
+    const s = JSON.parse(localStorage.getItem("cv.portfolio") ?? '{"state":{"positions":[],"closed":[],"orders":[]},"version":2}');
+    s.state.closed = [mk(1, 200, 2, true), mk(2, -100, -1, true), mk(3, 150, 1.5, false)];
+    localStorage.setItem("cv.portfolio", JSON.stringify(s));
+  });
+  await page.reload();
+  // 350 gross profit / 100 gross loss.
+  await expect(page.getByText("Profit factor").locator("..")).toContainText("3.50");
+  await expect(page.getByText("PnL neto", { exact: true }).locator("..")).toContainText("+$250");
+  await page.getByRole("radio", { name: "Manuale" }).click();
+  await expect(page.getByText("PnL neto", { exact: true }).locator("..")).toContainText("+$150");
+  await expect(page.getByRole("img", { name: "Kurba e kapitalit" })).toBeVisible();
+});
+
+test("seasonality: monthly heatmap, weekdays and drawdowns from full daily history", async ({ page }) => {
+  await acceptDisclaimer(page);
+  await page.goto("/seasonality?symbol=ETHUSDT");
+  await expect(page.getByText("Kthimet mujore të ETH")).toBeVisible({ timeout: 60_000 });
+  await expect(page.getByRole("rowheader", { name: "2022" })).toBeVisible();
+  await expect(page.getByText("Ditët e javës")).toBeVisible();
+  await expect(page.getByText("Rëniet më të mëdha historike")).toBeVisible();
+  await page.getByLabel("Simboli").selectOption({ label: "BTC" });
+  await expect(page).toHaveURL(/symbol=BTCUSDT/);
+  await expect(page.getByText("Kthimet mujore të BTC")).toBeVisible({ timeout: 60_000 });
+});
+
+test("calculators: DCA backtest compares periodic buys with a lump sum", async ({ page }) => {
+  await acceptDisclaimer(page);
+  await page.goto("/tools");
+  await page.getByRole("radio", { name: "DCA në histori" }).click();
+  await expect(page.getByText("Vlera sot")).toBeVisible({ timeout: 60_000 });
+  await expect(page.getByText(/\d+ blerje/)).toBeVisible();
+  await expect(page.getByRole("img", { name: "DCA kundrejt blerjes së menjëhershme" })).toBeVisible();
+});

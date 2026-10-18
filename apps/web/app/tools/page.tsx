@@ -1,16 +1,20 @@
 "use client";
 
 import type { Side } from "@cv/core";
-import { formatPrice } from "@cv/core";
-import { compound, dca, leverageCalc, positionSize, quantityForTargetAverage, recoveryGain, requiredRate, rrTargets, type Buy } from "@cv/risk";
-import { Calculator, Plus, X } from "lucide-react";
-import { useState } from "react";
-import { Button, Card, CardHeader, Field, Input, PageHeader, Segmented, Stat } from "@/components/ui/primitives";
-import { useT } from "@/lib/i18n";
+import { baseAsset, formatPrice } from "@cv/core";
+import { closedOnly, getKlinesDeep, universe } from "@cv/exchange";
+import { compound, dca, dcaBacktest, leverageCalc, positionSize, quantityForTargetAverage, recoveryGain, requiredRate, rrTargets, type Buy } from "@cv/risk";
+import { useQuery } from "@tanstack/react-query";
+import { Calculator, Loader2, Plus, X } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Button, Card, CardHeader, Field, Input, PageHeader, Segmented, Select, Stat } from "@/components/ui/primitives";
+import { compactUsd, SeriesChart } from "@/components/ui/series-chart";
+import { useTickers } from "@/lib/data/hooks";
+import { useT, type TKey } from "@/lib/i18n";
 import { useSettings } from "@/lib/store/settings";
 import { cn } from "@/lib/utils";
 
-type Tab = "size" | "dca" | "leverage" | "rr" | "growth";
+type Tab = "size" | "dca" | "history" | "leverage" | "rr" | "growth";
 
 const n = (v: string) => (v.trim() === "" ? NaN : Number(v));
 const fmt = (v: number | undefined, d = 2) => (v === undefined || !Number.isFinite(v) ? "—" : v.toLocaleString(undefined, { maximumFractionDigits: d }));
@@ -27,11 +31,12 @@ export default function ToolsPage() {
           value={tab}
           onChange={setTab}
           className="min-w-max"
-          options={(["size", "dca", "leverage", "rr", "growth"] as Tab[]).map((v) => ({ value: v, label: t(`tools.tab.${v}`) }))}
+          options={(["size", "dca", "history", "leverage", "rr", "growth"] as Tab[]).map((v) => ({ value: v, label: t(`tools.tab.${v}`) }))}
         />
       </div>
       {tab === "size" && <PositionSize />}
       {tab === "dca" && <Dca />}
+      {tab === "history" && <DcaHistory />}
       {tab === "leverage" && <Leverage />}
       {tab === "rr" && <RiskReward />}
       {tab === "growth" && <Growth />}
@@ -304,5 +309,104 @@ function Growth() {
         </Card>
       </div>
     </div>
+  );
+}
+
+/** Same cache key as the seasonality page, so switching between them doesn't refetch. */
+const HISTORY_BARS = 3000;
+
+function DcaHistory() {
+  const t = useT();
+  const fee = useSettings((s) => s.feePct);
+  const { data: tickers } = useTickers();
+  const [symbol, setSymbol] = useState("BTCUSDT");
+  const [amount, setAmount] = useState("100");
+  const [every, setEvery] = useState(7);
+  const [years, setYears] = useState(3);
+  const options = useMemo(() => (tickers ? universe(tickers, 120).map((x) => x.symbol) : [symbol]), [tickers, symbol]);
+  const q = useQuery({
+    queryKey: ["daily-deep", symbol, HISTORY_BARS],
+    queryFn: async ({ signal }) => closedOnly(await getKlinesDeep(symbol, "1d", HISTORY_BARS, signal)),
+    staleTime: 60 * 60_000,
+  });
+  const r = useMemo(() => (q.data ? dcaBacktest({ candles: q.data.slice(-years * 365), amount: n(amount), everyDays: every, feeRate: fee / 100 }) : null), [q.data, years, amount, every, fee]);
+  const shorter = !!q.data && q.data.length < years * 365;
+  const pctTone = (v: number | undefined) => (v === undefined ? undefined : v >= 0 ? "bull" : "bear");
+  return (
+    <Card>
+      <CardHeader title={t("tools.hist.title")} subtitle={t("tools.hist.sub")} />
+      <div className="grid grid-cols-2 gap-3 p-4 md:grid-cols-4">
+        <Field label={t("common.symbol")}>
+          <Select value={symbol} onChange={(e) => setSymbol(e.target.value)}>
+            {options.map((o) => (
+              <option key={o} value={o}>
+                {baseAsset(o)}
+              </option>
+            ))}
+          </Select>
+        </Field>
+        <Field label={t("tools.hist.amount")}>
+          <Input inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} />
+        </Field>
+        <Field label={t("tools.hist.every")}>
+          <Select value={every} onChange={(e) => setEvery(+e.target.value)}>
+            {[1, 7, 14, 30].map((d) => (
+              <option key={d} value={d}>
+                {t(`tools.hist.every${d}` as TKey)}
+              </option>
+            ))}
+          </Select>
+        </Field>
+        <Field label={t("tools.hist.period")}>
+          <Select value={years} onChange={(e) => setYears(+e.target.value)}>
+            {[1, 2, 3, 5].map((y) => (
+              <option key={y} value={y}>
+                {t("tools.hist.years", { n: y })}
+              </option>
+            ))}
+          </Select>
+        </Field>
+      </div>
+      {q.isLoading ? (
+        <p className="flex items-center gap-2 border-t border-line p-4 text-xs text-faint">
+          <Loader2 size={12} className="animate-spin" /> {t("common.loading")}
+        </p>
+      ) : !r ? (
+        <p className="border-t border-line p-4 text-xs text-faint">{q.error ? t("common.error") : "—"}</p>
+      ) : (
+        <>
+          <Results>
+            <Stat label={t("tools.hist.invested")} value={usd(r.invested)} sub={t("tools.hist.buys", { n: r.buys })} />
+            <Stat label={t("tools.hist.value")} value={usd(r.value)} tone={pctTone(r.returnPct)} sub={`${r.returnPct >= 0 ? "+" : ""}${fmt(r.returnPct, 1)}%`} />
+            <Stat label={t("tools.hist.avgCost")} value={formatPrice(r.avgCost)} sub={`${fmt(r.quantity, 6)} ${baseAsset(symbol)}`} />
+            <Stat label={t("tools.hist.worst")} value={`${fmt(r.worstPct, 1)}%`} tone="bear" />
+          </Results>
+          <div className="border-t border-line px-4 pt-4 pb-2">
+            <SeriesChart
+              label={t("tools.hist.title")}
+              times={r.path.map((p) => p.time)}
+              format={compactUsd}
+              series={[
+                { label: "DCA", color: "var(--accent)", values: r.path.map((p) => p.value) },
+                { label: t("tools.hist.lump"), color: "var(--warn)", values: r.path.map((p) => p.lump) },
+                { label: t("tools.hist.invested"), color: "var(--muted)", values: r.path.map((p) => p.invested), dashed: true },
+              ]}
+            />
+          </div>
+          <div className="grid gap-3 border-t border-line p-4 text-sm sm:grid-cols-2">
+            <p>
+              <b>DCA:</b> {usd(r.value)} ({r.returnPct >= 0 ? "+" : ""}
+              {fmt(r.returnPct, 1)}%) · {t("tools.hist.worstShort")} {fmt(r.worstPct, 1)}%
+            </p>
+            <p>
+              <b>{t("tools.hist.lump")}:</b> {usd(r.lump.value)} ({r.lump.returnPct >= 0 ? "+" : ""}
+              {fmt(r.lump.returnPct, 1)}%) · {t("tools.hist.worstShort")} {fmt(r.lump.worstPct, 1)}%
+            </p>
+            {shorter && <p className="text-xs text-warn sm:col-span-2">{t("tools.hist.shorter", { n: fmt((q.data?.length ?? 0) / 365, 1) })}</p>}
+            <p className="text-xs text-faint sm:col-span-2">{t("tools.hist.note")}</p>
+          </div>
+        </>
+      )}
+    </Card>
   );
 }

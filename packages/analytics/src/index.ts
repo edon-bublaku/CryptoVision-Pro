@@ -192,3 +192,4 @@ export function assetStats(aligned: Aligned, bench: string, lookback = 90): Asse
     };
   });
 }
+export * from "./seasonality";

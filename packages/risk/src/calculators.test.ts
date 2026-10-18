@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { compound, dca, leverageCalc, quantityForTargetAverage, recoveryGain, requiredRate, rrTargets } from "./calculators";
+import { compound, dca, dcaBacktest, leverageCalc, quantityForTargetAverage, recoveryGain, requiredRate, rrTargets } from "./calculators";
 
 describe("dca", () => {
   it("averages by quantity, not by price", () => {
@@ -72,5 +72,38 @@ describe("compounding", () => {
     expect(recoveryGain(50)).toBe(100);
     expect(recoveryGain(20)).toBe(25);
     expect(recoveryGain(100)).toBeNull();
+  });
+});
+
+describe("dcaBacktest", () => {
+  const day = (k: number, close: number) => ({ time: 1_700_000_000 + k * 86_400, close });
+
+  it("buys every N days at the close and compares with a lump sum", () => {
+    // Price falls then recovers: DCA buys cheaper units than the lump sum.
+    const candles = [day(0, 100), day(1, 50), day(2, 50), day(3, 100)];
+    const r = dcaBacktest({ candles, amount: 100, everyDays: 1, feeRate: 0 })!;
+    expect(r.buys).toBe(4);
+    expect(r.invested).toBe(400);
+    expect(r.quantity).toBe(6); // 1 + 2 + 2 + 1
+    expect(r.value).toBe(600);
+    expect(r.returnPct).toBe(50);
+    expect(r.avgCost).toBeCloseTo(66.6666667, 6);
+    expect(r.lump).toMatchObject({ quantity: 4, value: 400, returnPct: 0, worstPct: -50 });
+    expect(r.worstPct).toBe(-25); // day 1: 3 units × 50 = 150 against 200 put in
+    expect(r.path).toHaveLength(4);
+  });
+
+  it("respects the interval and the fee", () => {
+    const candles = Array.from({ length: 10 }, (_, k) => day(k, 10));
+    const r = dcaBacktest({ candles, amount: 10, everyDays: 7, feeRate: 0.01 })!;
+    expect(r.buys).toBe(2); // days 0 and 7
+    expect(r.quantity).toBeCloseTo(1.98, 12);
+    expect(r.returnPct).toBeCloseTo(-1, 10);
+  });
+
+  it("rejects invalid input", () => {
+    expect(dcaBacktest({ candles: [day(0, 1)], amount: 10, everyDays: 1 })).toBeNull();
+    expect(dcaBacktest({ candles: [day(0, 1), day(1, 2)], amount: 0, everyDays: 1 })).toBeNull();
+    expect(dcaBacktest({ candles: [day(0, 1), day(1, 2)], amount: 10, everyDays: 1.5 })).toBeNull();
   });
 });

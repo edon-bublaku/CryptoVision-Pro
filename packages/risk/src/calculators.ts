@@ -179,3 +179,74 @@ export function recoveryGain(lossPct: number): number | null {
   const l = D(lossPct).div(100);
   return num(l.div(D(1).minus(l)).times(100), 4);
 }
+
+// ── DCA vs lump sum on history ──────────────────────────────────────────────
+
+export interface DcaBacktestInput {
+  /** Daily closes, oldest first. */
+  candles: readonly { time: number; close: number }[];
+  /** Quote amount bought each period. */
+  amount: number;
+  /** Days between buys (1 = daily, 7 = weekly, 30 ≈ monthly). */
+  everyDays: number;
+  feeRate?: number;
+}
+
+export interface DcaBacktestResult {
+  buys: number;
+  invested: number;
+  quantity: number;
+  avgCost: number;
+  value: number;
+  returnPct: number;
+  /** Worst point of value vs money put in so far, in % (≤ 0). */
+  worstPct: number;
+  /** The same total invested all at once on the first day. */
+  lump: { quantity: number; value: number; returnPct: number; worstPct: number };
+  /** One point per day: money in, DCA value, lump-sum value. */
+  path: { time: number; invested: number; value: number; lump: number }[];
+}
+
+/**
+ * Buys `amount` at the close every `everyDays` days and compares with investing the same total
+ * on day one. Closes only, no look-ahead: each buy uses that day's close.
+ */
+export function dcaBacktest(i: DcaBacktestInput): DcaBacktestResult | null {
+  const cs = i.candles.filter((c) => Number.isFinite(c.close) && c.close > 0);
+  if (cs.length < 2 || !pos(i.amount) || !Number.isInteger(i.everyDays) || i.everyDays < 1) return null;
+  const fee = D(1).minus(D(i.feeRate ?? 0.001));
+  const buyDays = new Set<number>();
+  for (let k = 0; k < cs.length; k += i.everyDays) buyDays.add(k);
+  const total = D(i.amount).times(buyDays.size);
+  const lumpQty = total.times(fee).div(cs[0]!.close);
+  let qty = D(0);
+  let invested = D(0);
+  let worst = 0;
+  let lumpWorst = 0;
+  const path: DcaBacktestResult["path"] = [];
+  cs.forEach((c, k) => {
+    if (buyDays.has(k)) {
+      qty = qty.plus(D(i.amount).times(fee).div(c.close));
+      invested = invested.plus(i.amount);
+    }
+    const value = qty.times(c.close);
+    const lump = lumpQty.times(c.close);
+    worst = Math.min(worst, num(value.div(invested).minus(1).times(100), 4));
+    lumpWorst = Math.min(lumpWorst, num(lump.div(total).minus(1).times(100), 4));
+    path.push({ time: c.time, invested: num(invested, 2), value: num(value, 2), lump: num(lump, 2) });
+  });
+  const last = cs[cs.length - 1]!.close;
+  const value = qty.times(last);
+  const lumpValue = lumpQty.times(last);
+  return {
+    buys: buyDays.size,
+    invested: num(invested, 2),
+    quantity: num(qty),
+    avgCost: num(invested.div(qty)),
+    value: num(value, 2),
+    returnPct: num(value.div(invested).minus(1).times(100), 4),
+    worstPct: worst,
+    lump: { quantity: num(lumpQty), value: num(lumpValue, 2), returnPct: num(lumpValue.div(total).minus(1).times(100), 4), worstPct: lumpWorst },
+    path,
+  };
+}

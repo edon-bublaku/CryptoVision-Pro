@@ -1,6 +1,8 @@
 import {
   Bell,
+  BookOpenCheck,
   BriefcaseBusiness,
+  CalendarRange,
   Calculator,
   CandlestickChart,
   FlaskConical,
@@ -39,6 +41,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { href: "/recommendations", key: "nav.recommendations", icon: Sparkles, keywords: "portfolio model rekomandime" },
       { href: "/rating", key: "nav.rating", icon: Gauge, keywords: "score cv rating vleresim" },
       { href: "/portfolio", key: "nav.portfolio", icon: BriefcaseBusiness, keywords: "positions paper pozicione" },
+      { href: "/journal", key: "nav.journal", icon: BookOpenCheck, keywords: "journal ditar statistika win rate pnl performance" },
     ],
   },
   {
@@ -49,6 +52,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { href: "/screener", key: "nav.screener", icon: Radar, keywords: "skaner scan filter" },
       { href: "/markets", key: "nav.markets", icon: Orbit, keywords: "rrg correlation tregu" },
       { href: "/compare", key: "nav.compare", icon: GitCompareArrows, keywords: "compare krahaso vs" },
+      { href: "/seasonality", key: "nav.seasonality", icon: CalendarRange, keywords: "seasonality sezonalitet muaj month weekday drawdown histori" },
     ],
   },
   {

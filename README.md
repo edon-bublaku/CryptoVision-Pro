@@ -10,6 +10,7 @@ Platformë profesionale për analizë të kriptovalutave. Përfshin:
 - Grafik live me 31 mjete vizatimi.
 - Llogari me 2FA, sinkronizim mes pajisjeve, worker në server dhe njoftime (push, Telegram, email).
 - Inteligjencë tregu: grafik rotacioni (RRG), matricë korrelacioni, beta dhe volatilitet.
+- Ditar tregtimi me analitikë (win rate, profit factor, pritshmëria në R, kurba e kapitalit, drawdown) dhe sezonalitet historik për çdo coin (muajt, ditët e javës, rëniet më të mëdha).
 - Krahasim i 2–4 coin-ave krah për krah dhe kalkulatorë tregtari (madhësia e pozicionit, DCA, likuidimi, R:R, rritja e kapitalit).
 - Dizajn responsiv: menu "Më shumë" në mobile dhe paleta e komandave (Ctrl/⌘ K) që gjen çdo faqe, veprim ose coin.
 - Ndërtues strategjish pa kod, të testuara me të njëjtin motor backtest.
@@ -36,7 +37,9 @@ Platformë profesionale për analizë të kriptovalutave. Përfshin:
 | ↳ Raporti | Verdikti 0–100, plani i tregtisë me madhësinë e pozicionit (sipas % rrezikut), shpjegim në gjuhë natyrore, skenarët bull/bear, backtest i strategjisë në atë coin, matrica MTF (15m→1w), faktorët, nivelet, struktura, order book live, tregtimet live |
 | **Sinjalet** | Skanim i top 20–100 coin-ave në Web Worker. Filtra: drejtimi, skori, R:R, strategjia. Karta sinjalesh me plan dhe backtest. Track record automatik (TP/SL) |
 | **Krahaso** | 2–4 coin krah për krah (lidhja ruan zgjedhjen, `?s=BTCUSDT,ETHUSDT`): CV Rating dhe vendimi, grafik radar i 8 shtyllave, performanca e rindexuar (30D–1Y) me lexim nën kursor, tabela e metrikave me vlerën më të mirë të theksuar (vlerësimi, kthimet, kthim/volatilitet, volatiliteti, drawdown, beta, korrelacioni), matrica e korrelacionit dhe përmbledhje faktike |
-| **Kalkulatorët** | Madhësia e pozicionit sipas % rrezikut; DCA me shumë blerje, mesatarja, breakeven me tarifa dhe sa duhet blerë për një mesatare të synuar; leverage me çmim likuidimi (marzh i izoluar), PnL dhe ROE; objektivat 1R–5R me win-rate-in e nevojshëm për breakeven; rritja me interes të përbërë, kthimi i nevojshëm për një objektiv dhe rikuperimi pas humbjes. Gjithçka me `decimal.js` |
+| **Ditari** | Statistikat e trade-ve të mbyllura (paper, manuale ose të gjitha; 30D/90D/gjithçka): win rate, profit factor, PnL neto, pritshmëria në $ dhe R, fitimi/humbja mesatare, drawdown maks., seritë, kurba e kapitalit, PnL mujor, trade-i më i mirë/keq dhe ndarja sipas coin-it, ditës, arsyes së daljes, drejtimit dhe strategjisë. Llogaritje me `decimal.js` |
+| **Sezonaliteti** | Për çdo coin, nga deri 3000 ditë histori: kthimet mujore sipas viteve (heatmap me mesatare, mediane dhe % pozitive), ditët e javës, shpërndarja e kthimeve ditore, volatiliteti vjetor, dita më e mirë/keqe, seritë dhe 5 rëniet më të mëdha me kohën e rikuperimit |
+| **Kalkulatorët** | **DCA në histori:** blerje periodike (ditore, javore, 2-javore, mujore) për 1–5 vjet kundrejt blerjes së gjithë shumës në fillim, me koston mesatare dhe pikën më të keqe. Madhësia e pozicionit sipas % rrezikut; DCA me shumë blerje, mesatarja, breakeven me tarifa dhe sa duhet blerë për një mesatare të synuar; leverage me çmim likuidimi (marzh i izoluar), PnL dhe ROE; objektivat 1R–5R me win-rate-in e nevojshëm për breakeven; rritja me interes të përbërë, kthimi i nevojshëm për një objektiv dhe rikuperimi pas humbjes. Gjithçka me `decimal.js` |
 | **Tregu** | Grafiku i rotacionit relativ (RRG) ndaj BTC me bishtat e 8 ditëve, matrica e korrelacionit e grupuar sipas ngjashmërisë, beta dhe korrelacioni me BTC, volatiliteti 30d, max drawdown 90d, kthimi për njësi volatiliteti, shpërndarja e tregut |
 | **Skaneri** | Ndërtues kriteresh (RSI, ADX, %B, kompresim BB, RVOL, distanca nga EMA-të / max 20-bar …), preset-e, skanime të ruajtura |
 | **Backtest** | Motori i njëjtë me sinjalet live. Tarifa, slippage, filtër HTF, kurba e kapitalit kundrejt blej-e-mbaj, drawdown, walk-forward, Monte Carlo (1000 simulime), tregtimet në grafik |
@@ -91,12 +94,12 @@ përdorni `DATABASE_URL` me PostgreSQL dhe `REDIS_URL`.
 
 | Komanda | Çfarë bën |
 |---|---|
-| `pnpm test` | 145 teste: rekomanduesi (regjimi, korrelacioni, pesha, kauzaliteti), indikatorët kundrejt `technicalindicators`, motori, CV Rating dhe plani (pa look-ahead), rreziku, paper trading, analitika (korrelacion, beta, RRG), strategjitë custom, backtest-i, TOTP sipas RFC 6238, kriptimi, alertet e worker-it dhe të vlerësimit, kalkulatorët dhe repo-t e DB-së mbi PGlite |
+| `pnpm test` | 158 teste: rekomanduesi (regjimi, korrelacioni, pesha, kauzaliteti), indikatorët kundrejt `technicalindicators`, motori, CV Rating dhe plani (pa look-ahead), rreziku, paper trading, analitika (korrelacion, beta, RRG), strategjitë custom, backtest-i, TOTP sipas RFC 6238, kriptimi, alertet e worker-it dhe të vlerësimit, kalkulatorët, DCA historik, ditari, sezonaliteti dhe repo-t e DB-së mbi PGlite |
 | `pnpm test:integration` | Të njëjtat teste, me repo-t e DB-së kundër PostgreSQL (`TEST_DATABASE_URL`) |
 | `pnpm typecheck` | TypeScript strict në të gjitha paketat |
 | `pnpm lint` / `pnpm lint:fix` | ESLint (hooks, Next.js, pa `any`, pa `console`) në gjithë monorepo-n |
 | `pnpm build` / `pnpm start` | Build dhe server prodhimi (Next.js 16) |
-| `pnpm test:e2e` | 28 teste Playwright: UI, rekomandimet, CV Rating + plani, ndërtuesi i strategjive, tregu, paper trading, krahasimi, kalkulatorët, paleta e komandave, menuja mobile, alertet e vlerësimit, API (regjistrim → 2FA → sesione → sinkronizim), sinkronizim vizatimesh mes dy pajisjeve. Plus portat e cilësisë: 17 faqe pa tejkalim në 375/768/1440 px dhe pa shkelje serioze WCAG 2.1 AA (axe) në të dy temat |
+| `pnpm test:e2e` | 31 teste Playwright: UI, rekomandimet, CV Rating + plani, ndërtuesi i strategjive, tregu, paper trading, krahasimi, kalkulatorët dhe DCA historik, ditari, sezonaliteti, paleta e komandave, menuja mobile, alertet e vlerësimit, API (regjistrim → 2FA → sesione → sinkronizim), sinkronizim vizatimesh mes dy pajisjeve. Plus portat e cilësisë: 19 faqe pa tejkalim në 375/768/1440 px dhe pa shkelje serioze WCAG 2.1 AA (axe) në të dy temat |
 | `pnpm db:migrate` / `pnpm db:generate` | Zbato / gjenero migrimet |
 | `pnpm worker` | Worker në proces të veçantë (vetëm me `WORKER=external` dhe PostgreSQL) |
 | `pnpm backtest --symbol ETHUSDT --tf 4h --bars 3000 [--strategy breakout_volume]` | Backtest nga terminali |
