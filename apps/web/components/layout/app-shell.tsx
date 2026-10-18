@@ -2,32 +2,7 @@
 
 import { formatPrice } from "@cv/core";
 import { useQueryClient } from "@tanstack/react-query";
-import {
-  Bell,
-  BriefcaseBusiness,
-  CandlestickChart,
-  ChevronsLeft,
-  ChevronsRight,
-  Cloud,
-  CloudOff,
-  FlaskConical,
-  LayoutDashboard,
-  Loader2,
-  LogIn,
-  LogOut,
-  Moon,
-  Gauge,
-  Sparkles,
-  Orbit,
-  Radar,
-  Search,
-  Settings,
-  ShieldAlert,
-  ShieldCheck,
-  Sun,
-  UserRound,
-  Zap,
-} from "lucide-react";
+import { Bell, ChevronsLeft, ChevronsRight, Cloud, CloudOff, Ellipsis, Loader2, LogIn, LogOut, Moon, Search, ShieldAlert, ShieldCheck, Sun, UserRound, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -35,31 +10,17 @@ import { useStreamStatus, useTickers } from "@/lib/data/hooks";
 import { useT } from "@/lib/i18n";
 import { useAlerts } from "@/lib/store/alerts";
 import { useAuth } from "@/lib/store/auth";
-import { useChartUi } from "@/lib/store/chart-ui";
 import { useSettings } from "@/lib/store/settings";
 import { cn } from "@/lib/utils";
 import { AlertEngine } from "./alert-engine";
+import { CommandPalette } from "./command-palette";
+import { isActive, MOBILE_PRIMARY, NAV_GROUPS, NAV_ITEMS } from "./nav";
 import { PaperEngine } from "./paper-engine";
 import { EventsBridge, SyncManager } from "./sync-manager";
-import { Button, Input, Modal } from "../ui/primitives";
+import { Button, Modal } from "../ui/primitives";
 import { Toaster } from "../ui/toast";
-import { CoinIcon, Pct } from "../ui/viz";
+import { Pct } from "../ui/viz";
 
-const NAV = [
-  { href: "/", key: "nav.dashboard", icon: LayoutDashboard },
-  { href: "/chart", key: "nav.chart", icon: CandlestickChart },
-  { href: "/recommendations", key: "nav.recommendations", icon: Sparkles },
-  { href: "/rating", key: "nav.rating", icon: Gauge },
-  { href: "/signals", key: "nav.signals", icon: Zap },
-  { href: "/screener", key: "nav.screener", icon: Radar },
-  { href: "/markets", key: "nav.markets", icon: Orbit },
-  { href: "/backtest", key: "nav.backtest", icon: FlaskConical },
-  { href: "/portfolio", key: "nav.portfolio", icon: BriefcaseBusiness },
-  { href: "/alerts", key: "nav.alerts", icon: Bell },
-  { href: "/settings", key: "nav.settings", icon: Settings },
-] as const;
-
-const MOBILE_NAV = ["/", "/recommendations", "/chart", "/rating", "/portfolio"];
 /** Full-bleed pages render without the app chrome. */
 const BARE = ["/welcome", "/login", "/register"];
 
@@ -67,6 +28,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const t = useT();
   const path = usePathname() ?? "/";
   const [searchOpen, setSearchOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const accepted = useSettings((s) => s.disclaimerAccepted);
   const set = useSettings((s) => s.set);
   const lang = useSettings((s) => s.lang);
@@ -111,7 +73,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     });
   };
 
-  const active = (href: string) => (href === "/" ? path === "/" : path.startsWith(href));
+  const active = (href: string) => isActive(path, href);
+  useEffect(() => setMoreOpen(false), [path]);
 
   if (bare)
     return (
@@ -137,29 +100,35 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
           )}
         </Link>
-        <nav className="flex-1 space-y-1 px-3" aria-label="Main">
-          {NAV.map((n) => {
-            const on = active(n.href);
-            return (
-              <Link
-                key={n.href}
-                href={n.href}
-                title={collapsed ? t(n.key) : undefined}
-                className={cn(
-                  "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all",
-                  collapsed && "justify-center px-0",
-                  on ? "bg-[color-mix(in_oklab,var(--accent)_14%,transparent)] text-fg" : "text-muted hover:bg-panel-2 hover:text-fg",
-                )}
-              >
-                {on && <span className="brand-gradient absolute top-2 bottom-2 left-0 w-[3px] rounded-full" />}
-                <n.icon size={18} className={cn(on && "text-accent")} />
-                {!collapsed && <span className="truncate">{t(n.key)}</span>}
-                {n.href === "/alerts" && unread > 0 && (
-                  <span className={cn("rounded-full bg-bear px-1.5 text-[10px] font-bold text-white", collapsed ? "absolute top-1 right-2" : "ml-auto")}>{unread}</span>
-                )}
-              </Link>
-            );
-          })}
+        <nav className="min-h-0 flex-1 space-y-4 overflow-y-auto px-3 pb-2" aria-label="Main">
+          {NAV_GROUPS.filter((g) => g.key !== "navg.system" || !collapsed).map((g) => (
+            <div key={g.key} className="space-y-0.5">
+              {!collapsed && <div className="px-3 pb-1 text-[10px] font-semibold tracking-[0.08em] text-faint uppercase">{t(g.key)}</div>}
+              {g.items.map((n) => {
+                const on = active(n.href);
+                return (
+                  <Link
+                    key={n.href}
+                    href={n.href}
+                    title={collapsed ? t(n.key) : undefined}
+                    aria-current={on ? "page" : undefined}
+                    className={cn(
+                      "group relative flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-all",
+                      collapsed && "justify-center px-0 py-2.5",
+                      on ? "bg-[color-mix(in_oklab,var(--accent)_14%,transparent)] text-fg" : "text-muted hover:bg-panel-2 hover:text-fg",
+                    )}
+                  >
+                    {on && <span className="brand-gradient absolute top-2 bottom-2 left-0 w-[3px] rounded-full" />}
+                    <n.icon size={18} className={cn(on && "text-accent")} />
+                    {!collapsed && <span className="truncate">{t(n.key)}</span>}
+                    {n.href === "/alerts" && unread > 0 && (
+                      <span className={cn("rounded-full bg-bear px-1.5 text-[10px] font-bold text-white", collapsed ? "absolute top-1 right-2" : "ml-auto")}>{unread}</span>
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+          ))}
         </nav>
         <div className="space-y-2 p-3">
           {!collapsed && (
@@ -202,26 +171,49 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <Bell size={17} />
               {unread > 0 && <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-bear" />}
             </Link>
-            <button className="rounded-lg px-2 py-1 text-xs font-bold text-muted hover:bg-panel-2 hover:text-fg" onClick={() => set({ lang: lang === "sq" ? "en" : "sq" })} aria-label={t("settings.language")}>
+            <button className="rounded-lg px-2 py-1 text-xs font-bold text-muted hover:bg-panel-2 hover:text-fg" onClick={() => set({ lang: lang === "sq" ? "en" : "sq" })} aria-label={`${lang === "sq" ? "SQ" : "EN"} · ${t("settings.language")}`}>
               {lang === "sq" ? "SQ" : "EN"}
             </button>
             <UserMenu />
           </div>
         </header>
 
-        <main className={cn("min-h-0 flex-1", isChart ? "overflow-hidden" : "overflow-y-auto pb-24 lg:pb-0")}>{children}</main>
+        {/* On phones the bottom bar overlays the page; reserve its height (+ the home-indicator inset). */}
+        <main className={cn("min-h-0 flex-1", isChart ? "overflow-hidden pb-[calc(58px+env(safe-area-inset-bottom))] lg:pb-0" : "overflow-y-auto pb-24 lg:pb-0")}>{children}</main>
 
         <nav className="glass fixed inset-x-0 bottom-0 z-40 flex border-t border-line pb-[env(safe-area-inset-bottom)] lg:hidden" aria-label="Mobile">
-          {NAV.filter((n) => MOBILE_NAV.includes(n.href)).map((n) => (
-            <Link key={n.href} href={n.href} className={cn("flex flex-1 flex-col items-center gap-0.5 py-2.5 text-[10px] font-medium", active(n.href) ? "text-accent" : "text-muted")}>
+          {NAV_ITEMS.filter((n) => MOBILE_PRIMARY.includes(n.href)).map((n) => (
+            <Link
+              key={n.href}
+              href={n.href}
+              aria-current={active(n.href) ? "page" : undefined}
+              className={cn("flex min-w-0 flex-1 flex-col items-center gap-0.5 py-2.5 text-[10px] font-medium", active(n.href) ? "text-accent" : "text-muted")}
+            >
               <n.icon size={19} />
-              {t(n.key)}
+              <span className="max-w-full truncate px-0.5">{t(n.key)}</span>
             </Link>
           ))}
+          <button
+            onClick={() => setMoreOpen(true)}
+            aria-haspopup="dialog"
+            aria-expanded={moreOpen}
+            className={cn(
+              "relative flex min-w-0 flex-1 flex-col items-center gap-0.5 py-2.5 text-[10px] font-medium",
+              NAV_ITEMS.some((n) => !MOBILE_PRIMARY.includes(n.href) && active(n.href)) ? "text-accent" : "text-muted",
+            )}
+          >
+            <Ellipsis size={19} />
+            {t("nav.more")}
+            {unread > 0 && <span className="absolute top-1.5 right-[calc(50%-14px)] h-2 w-2 rounded-full bg-bear" />}
+          </button>
         </nav>
       </div>
 
-      <SymbolSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
+      <MoreSheet open={moreOpen} onClose={() => setMoreOpen(false)} active={active} unread={unread} onSearch={() => {
+        setMoreOpen(false);
+        setSearchOpen(true);
+      }} />
+      <CommandPalette open={searchOpen} onClose={() => setSearchOpen(false)} />
       <Modal open={!accepted} onClose={() => {}} title={t("disclaimer.title")}>
         <div className="space-y-4">
           <div className="flex gap-3 rounded-2xl border border-warn/25 bg-warn-soft p-3.5 text-warn">
@@ -279,7 +271,7 @@ function UserMenu() {
   const initials = (user.name ?? user.email).slice(0, 2).toUpperCase();
   return (
     <div ref={ref} className="relative ml-1">
-      <button onClick={() => setOpen(!open)} className="brand-gradient flex h-8 w-8 items-center justify-center rounded-full text-[11px] font-bold text-[#060911]" aria-label={t("nav.account")}>
+      <button onClick={() => setOpen(!open)} className="brand-gradient flex h-8 w-8 items-center justify-center rounded-full text-[11px] font-bold text-[#060911]" aria-label={`${initials} · ${t("nav.account")}`}>
         {initials}
       </button>
       {open && (
@@ -333,65 +325,70 @@ function TickerTape() {
   );
 }
 
-function SymbolSearch({ open, onClose }: { open: boolean; onClose: () => void }) {
+/** Mobile bottom sheet with every page (grouped) and quick toggles: the phone equivalent of the sidebar. */
+function MoreSheet({ open, onClose, active, unread, onSearch }: { open: boolean; onClose: () => void; active: (href: string) => boolean; unread: number; onSearch: () => void }) {
   const t = useT();
-  const router = useRouter();
-  const path = usePathname();
-  const { data } = useTickers();
-  const [q, setQ] = useState("");
-  const [idx, setIdx] = useState(0);
-  const activePanel = useChartUi((s) => s.activePanel);
-  const setPanel = useChartUi((s) => s.setPanel);
-  const results = useMemo(() => {
-    const list = [...(data ?? [])].sort((a, b) => b.quoteVolume - a.quoteVolume);
-    const query = q.trim().toUpperCase();
-    return (query ? list.filter((x) => x.symbol.includes(query)).sort((a, b) => Number(b.symbol.startsWith(query)) - Number(a.symbol.startsWith(query))) : list).slice(0, 40);
-  }, [data, q]);
-
+  const s = useSettings();
   useEffect(() => {
-    if (open) {
-      setQ("");
-      setIdx(0);
-    }
-  }, [open]);
-
-  const pick = (symbol: string) => {
-    onClose();
-    if (path?.startsWith("/chart")) setPanel(activePanel, { symbol });
-    router.push(`/chart?symbol=${symbol}`);
-  };
-
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+  if (!open) return null;
   return (
-    <Modal open={open} onClose={onClose} title={t("nav.search")}>
-      <Input
-        autoFocus
-        value={q}
-        placeholder="BTC, ETH, SOL…"
-        onChange={(e) => {
-          setQ(e.target.value);
-          setIdx(0);
-        }}
-        onKeyDown={(e) => {
-          if (e.key === "ArrowDown") setIdx((i) => Math.min(results.length - 1, i + 1));
-          if (e.key === "ArrowUp") setIdx((i) => Math.max(0, i - 1));
-          if (e.key === "Enter" && results[idx]) pick(results[idx]!.symbol);
-        }}
-      />
-      <ul className="mt-3 max-h-[50vh] overflow-y-auto">
-        {results.map((r, i) => (
-          <li key={r.symbol}>
-            <button onClick={() => pick(r.symbol)} onMouseEnter={() => setIdx(i)} className={cn("flex w-full items-center gap-3 rounded-xl px-2.5 py-2 text-left", i === idx && "bg-panel-2")}>
-              <CoinIcon symbol={r.symbol} size={28} />
-              <span className="flex-1">
-                <span className="text-sm font-semibold">{r.symbol.replace("USDT", "")}</span>
-                <span className="text-xs text-faint">/USDT</span>
-              </span>
-              <span className="num text-sm">{formatPrice(r.lastPrice)}</span>
-              <Pct value={r.priceChangePercent} className="w-16 text-right text-xs" />
-            </button>
-          </li>
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm lg:hidden" onMouseDown={onClose}>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={t("nav.more")}
+        onMouseDown={(e) => e.stopPropagation()}
+        className="animate-fade-up absolute inset-x-0 bottom-0 max-h-[85dvh] overflow-y-auto rounded-t-3xl border-t border-line bg-panel-solid px-4 pt-3 pb-[calc(16px+env(safe-area-inset-bottom))]"
+      >
+        <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-line-strong" />
+        <div className="mb-4 flex items-center gap-2">
+          <button onClick={onSearch} className="flex h-10 flex-1 items-center gap-2 rounded-xl border border-line bg-panel-2 px-3 text-sm text-faint">
+            <Search size={15} /> {t("cmd.placeholder")}
+          </button>
+          <button onClick={onClose} className="rounded-xl p-2.5 text-muted hover:bg-panel-2" aria-label={t("common.close")}>
+            <X size={18} />
+          </button>
+        </div>
+        {NAV_GROUPS.map((g) => (
+          <section key={g.key} className="mb-4">
+            <h3 className="mb-2 px-1 text-[10px] font-semibold tracking-[0.08em] text-faint uppercase">{t(g.key)}</h3>
+            <div className="grid grid-cols-3 gap-2">
+              {g.items.map((n) => (
+                <Link
+                  key={n.href}
+                  href={n.href}
+                  onClick={onClose}
+                  aria-current={active(n.href) ? "page" : undefined}
+                  className={cn(
+                    "relative flex flex-col items-center gap-1.5 rounded-2xl border px-2 py-3 text-center text-[11px] font-medium",
+                    active(n.href) ? "border-accent/50 bg-accent-soft text-fg" : "border-line text-muted",
+                  )}
+                >
+                  <n.icon size={20} className={cn(active(n.href) && "text-accent")} />
+                  <span className="leading-tight">{t(n.key)}</span>
+                  {n.href === "/alerts" && unread > 0 && <span className="absolute top-2 right-2 rounded-full bg-bear px-1.5 text-[10px] font-bold text-white">{unread}</span>}
+                </Link>
+              ))}
+            </div>
+          </section>
         ))}
-      </ul>
-    </Modal>
+        <div className="grid grid-cols-2 gap-2">
+          <button onClick={() => s.set({ theme: s.theme === "dark" ? "light" : "dark" })} className="flex items-center justify-center gap-2 rounded-xl border border-line py-2.5 text-xs text-muted">
+            {s.theme === "dark" ? <Sun size={15} /> : <Moon size={15} />} {t(s.theme === "dark" ? "cmd.themeLight" : "cmd.themeDark")}
+          </button>
+          <button onClick={() => s.set({ lang: s.lang === "sq" ? "en" : "sq" })} className="flex items-center justify-center gap-2 rounded-xl border border-line py-2.5 text-xs text-muted">
+            {s.lang === "sq" ? "English" : "Shqip"}
+          </button>
+        </div>
+        <p className="mt-3 flex items-start gap-2 text-[11px] leading-snug text-warn">
+          <ShieldAlert size={13} className="mt-px shrink-0" /> {t("disclaimer.short")}
+        </p>
+      </div>
+    </div>
   );
 }

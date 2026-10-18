@@ -43,6 +43,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
+      - run: pnpm lint
       - name: Create test database
         run: PGPASSWORD=cryptovision psql -h localhost -U cryptovision -d cryptovision -c "CREATE DATABASE cryptovision_test"
       - name: Unit + integration tests (PostgreSQL)

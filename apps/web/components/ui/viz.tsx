@@ -40,8 +40,8 @@ export function ActionBadge({ action, className, size = "sm" }: { action: Signal
       className={cn(
         "inline-flex items-center justify-center rounded-md font-bold tracking-wide",
         size === "sm" ? "h-6 px-2 text-[11px]" : "h-9 px-4 text-sm",
-        tone === "bull" && (action === "STRONG_BUY" ? "bg-bull text-white" : "bg-bull-soft text-bull"),
-        tone === "bear" && (action === "STRONG_SELL" ? "bg-bear text-white" : "bg-bear-soft text-bear"),
+        tone === "bull" && (action === "STRONG_BUY" ? "bg-bull text-(--on-bull)" : "bg-bull-soft text-bull"),
+        tone === "bear" && (action === "STRONG_SELL" ? "bg-bear text-(--on-bear)" : "bg-bear-soft text-bear"),
         tone === "neutral" && "bg-panel-2 text-muted",
         className,
       )}

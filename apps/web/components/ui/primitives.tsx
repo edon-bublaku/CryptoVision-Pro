@@ -1,7 +1,7 @@
 "use client";
 
 import { X } from "lucide-react";
-import { forwardRef, useEffect, type ButtonHTMLAttributes, type HTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes } from "react";
+import { forwardRef, useEffect, useId, type ButtonHTMLAttributes, type HTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 
@@ -20,9 +20,9 @@ export const Button = forwardRef<HTMLButtonElement, ButtonHTMLAttributes<HTMLBut
           variant === "primary" && "brand-gradient text-[#060911] font-semibold shadow-[0_6px_20px_-8px_rgba(123,140,255,0.8)] hover:brightness-110 hover:shadow-[0_8px_28px_-6px_rgba(123,140,255,0.9)]",
           variant === "secondary" && "border border-line bg-panel-2 text-fg hover:border-line-strong hover:bg-[color-mix(in_oklab,var(--fg)_7%,transparent)]",
           variant === "ghost" && "text-muted hover:bg-panel-2 hover:text-fg",
-          variant === "danger" && "bg-bear text-white hover:brightness-110",
-          variant === "bull" && "bg-bull text-white hover:brightness-110",
-          variant === "bear" && "bg-bear text-white hover:brightness-110",
+          variant === "danger" && "bg-bear text-(--on-bear) hover:brightness-110",
+          variant === "bull" && "bg-bull text-(--on-bull) hover:brightness-110",
+          variant === "bear" && "bg-bear text-(--on-bear) hover:brightness-110",
           active && "border-accent bg-accent-soft text-accent",
           className,
         )}
@@ -143,6 +143,7 @@ export function Skeleton({ className }: { className?: string }) {
 }
 
 export function Modal({ open, onClose, title, children, wide }: { open: boolean; onClose: () => void; title: ReactNode; children: ReactNode; wide?: boolean }) {
+  const titleId = useId();
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -155,11 +156,14 @@ export function Modal({ open, onClose, title, children, wide }: { open: boolean;
       <div
         role="dialog"
         aria-modal="true"
+        aria-labelledby={titleId}
         className={cn("animate-fade-up max-h-[92vh] w-full overflow-auto rounded-t-3xl border border-line bg-panel-solid shadow-2xl sm:rounded-3xl", wide ? "sm:max-w-3xl" : "sm:max-w-lg")}
         onMouseDown={(e) => e.stopPropagation()}
       >
         <div className="sticky top-0 z-10 flex items-center justify-between border-b border-line bg-panel-solid px-6 py-4">
-          <h2 className="text-base font-semibold">{title}</h2>
+          <h2 id={titleId} className="text-base font-semibold">
+            {title}
+          </h2>
           <button onClick={onClose} className="rounded p-1 text-muted hover:bg-panel-2 hover:text-fg" aria-label="Close">
             <X size={18} />
           </button>

@@ -12,7 +12,7 @@ import { useAlerts, type AlertType } from "@/lib/store/alerts";
 import { useSettings } from "@/lib/store/settings";
 import { timeAgo } from "@/lib/utils";
 
-const TYPES: AlertType[] = ["price_above", "price_below", "change_pct", "rsi_above", "rsi_below", "signal"];
+const TYPES: AlertType[] = ["price_above", "price_below", "change_pct", "rsi_above", "rsi_below", "rating_above", "rating_below", "signal"];
 
 export default function AlertsPage() {
   const t = useT();
@@ -141,8 +141,19 @@ function NewAlertModal({ open, onClose }: { open: boolean; onClose: () => void }
           </Select>
         </Field>
         {needsValue && (
-          <Field label={t("alerts.value")} hint={type.startsWith("price") && price ? `${t("common.price")}: ${formatPrice(price)}` : undefined}>
-            <Input type="number" step="any" value={value} placeholder={type.startsWith("rsi") ? "70" : type === "change_pct" ? "5" : price ? String(price) : ""} onChange={(e) => setValue(e.target.value)} />
+          <Field
+            label={t("alerts.value")}
+            hint={type.startsWith("price") && price ? `${t("common.price")}: ${formatPrice(price)}` : type.startsWith("rating") ? t("alerts.ratingHint") : undefined}
+          >
+            <Input
+              type="number"
+              step="any"
+              min={type.startsWith("rating") || type.startsWith("rsi") ? 0 : undefined}
+              max={type.startsWith("rating") || type.startsWith("rsi") ? 100 : undefined}
+              value={value}
+              placeholder={type.startsWith("rsi") ? "70" : type === "rating_above" ? "60" : type === "rating_below" ? "45" : type === "change_pct" ? "5" : price ? String(price) : ""}
+              onChange={(e) => setValue(e.target.value)}
+            />
           </Field>
         )}
         {type.startsWith("rsi") && (
@@ -162,7 +173,7 @@ function NewAlertModal({ open, onClose }: { open: boolean; onClose: () => void }
         <Button onClick={onClose}>{t("common.cancel")}</Button>
         <Button
           variant="primary"
-          disabled={needsValue && !Number.isFinite(parseFloat(value))}
+          disabled={needsValue && (!Number.isFinite(parseFloat(value)) || (/^(rating|rsi)/.test(type) && (parseFloat(value) < 0 || parseFloat(value) > 100)))}
           onClick={() => {
             add({ symbol, type, value: needsValue ? parseFloat(value) : 0, timeframe: type.startsWith("rsi") ? tf : undefined, once });
             onClose();

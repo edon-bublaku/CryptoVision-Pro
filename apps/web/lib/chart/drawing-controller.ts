@@ -1,7 +1,7 @@
 import type { Candle } from "@cv/core";
 import type { IChartApi } from "lightweight-charts";
 import type { CoordMapper } from "./coords";
-import { DrawingsPrimitive, hitTest, positionPoints, type HitResult } from "./drawing-render";
+import { type DrawingsPrimitive, hitTest, positionPoints, type HitResult } from "./drawing-render";
 import { defaultStyle, DRAWING_SCHEMA_VERSION, POINTS_REQUIRED, TEXT_TOOLS, type Drawing, type DrawingPoint, type Tool } from "./drawing-types";
 
 export interface ControllerCallbacks {

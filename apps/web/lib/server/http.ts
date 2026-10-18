@@ -2,7 +2,7 @@ import "server-only";
 import { getDb, type Db, type User } from "@cv/db";
 import { log, rateLimit } from "@cv/server";
 import { NextResponse, type NextRequest } from "next/server";
-import { z, ZodError } from "zod";
+import { type z, ZodError } from "zod";
 import { currentSession } from "./session";
 
 export class HttpError extends Error {

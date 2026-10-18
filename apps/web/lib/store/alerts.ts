@@ -4,7 +4,7 @@ import type { Timeframe } from "@cv/core";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
-export type AlertType = "price_above" | "price_below" | "change_pct" | "rsi_above" | "rsi_below" | "signal" | "drawing";
+export type AlertType = "price_above" | "price_below" | "change_pct" | "rsi_above" | "rsi_below" | "rating_above" | "rating_below" | "signal" | "drawing";
 
 export interface Alert {
   id: string;

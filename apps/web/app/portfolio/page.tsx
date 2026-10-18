@@ -4,7 +4,7 @@ import type { Side } from "@cv/core";
 import { baseAsset, correlation, formatCompact, formatPrice } from "@cv/core";
 import { liquidationPrice, orderProblem, positionSize, unrealizedPnl, type OrderType } from "@cv/risk";
 import { useQueries } from "@tanstack/react-query";
-import { AlertTriangle, BriefcaseBusiness, Clock, Download, Plus, Trash2, X } from "lucide-react";
+import { AlertTriangle, BriefcaseBusiness, Download, Plus, Trash2, X } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { Badge, Button, Card, CardHeader, Empty, Field, Input, Modal, Segmented, Select, Stat, PageHeader } from "@/components/ui/primitives";

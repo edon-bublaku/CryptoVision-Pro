@@ -20,7 +20,7 @@ export async function api<T>(path: string, init: { method?: string; body?: unkno
     signal: init.signal,
   });
   const text = await res.text();
-  let data: Record<string, unknown> = {};
+  let data: Record<string, unknown>;
   try {
     data = text ? (JSON.parse(text) as Record<string, unknown>) : {};
   } catch {

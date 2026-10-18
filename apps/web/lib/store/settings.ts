@@ -1,7 +1,7 @@
 "use client";
 
 import type { Timeframe } from "@cv/core";
-import { WEIGHT_PRESETS, type PillarWeights, type PresetId } from "@cv/rating";
+import { resolveWeights, WEIGHT_PRESETS, type PillarWeights, type PresetId } from "@cv/rating";
 import { RISK_PROFILES, type RiskProfile } from "@cv/risk";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
@@ -23,6 +23,10 @@ export interface SettingsState {
   lang: "sq" | "en";
   theme: "dark" | "light";
   colorblind: boolean;
+  /** Turn off animations regardless of the OS setting. */
+  reduceMotion: boolean;
+  /** Denser layout: smaller root font size, so every rem-based spacing shrinks with it. */
+  compact: boolean;
   riskProfile: RiskProfile;
   equity: number;
   riskPct: number;
@@ -52,6 +56,8 @@ export const useSettings = create<SettingsState>()(
       lang: "sq",
       theme: "dark",
       colorblind: false,
+      reduceMotion: false,
+      compact: false,
       riskProfile: "moderate",
       equity: 10_000,
       riskPct: 1,
@@ -86,5 +92,5 @@ export const useSettings = create<SettingsState>()(
 
 /** The pillar weights the CV Rating should use right now. */
 export function activeRatingWeights(s: Pick<SettingsState, "ratingPreset" | "ratingWeights">): PillarWeights {
-  return s.ratingPreset === "custom" ? s.ratingWeights : WEIGHT_PRESETS[s.ratingPreset] ?? WEIGHT_PRESETS.balanced;
+  return resolveWeights(s.ratingPreset, s.ratingWeights);
 }

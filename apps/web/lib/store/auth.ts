@@ -50,7 +50,7 @@ export const useAuth = create<AuthState>((set) => ({
   ready: false,
   syncStatus: "off",
   init: async () => {
-    let health = OFFLINE;
+    let health: Health;
     try {
       health = await api<Health>("/api/health");
     } catch {

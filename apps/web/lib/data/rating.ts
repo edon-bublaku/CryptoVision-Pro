@@ -56,33 +56,25 @@ export function useRating(symbol: string): RatingView {
 /** Context cache shared by every page, keyed by coin and data version: re-weighting never rebuilds. */
 const ctxCache = new Map<string, { at: number; fg: number; ctx: RatingContext }>();
 
-/**
- * Daily history and rating contexts for the top `size` coins by volume (BTC always included),
- * loaded in parallel and cached; `loaded`/`total` drive progress UI.
- */
-export function useUniverseContexts(size: number) {
-  const { data: tickers } = useTickers();
+/** Daily history and rating contexts for `symbols` (BTC is loaded too as the benchmark), cached. */
+export function useContextsFor(symbols: readonly string[]) {
   const fg = useFearGreedHistory();
-  const symbols = useMemo(() => {
-    if (!tickers) return [];
-    const top = universe(tickers, size).map((x) => x.symbol);
-    return top.includes(BENCH) ? top : [BENCH, ...top.slice(0, size - 1)];
-  }, [tickers, size]);
+  const all = useMemo(() => (symbols.includes(BENCH) ? [...symbols] : [...symbols, BENCH]), [symbols]);
   const queries = useQueries({
-    queries: symbols.map((sym) => ({
+    queries: all.map((sym) => ({
       queryKey: ["daily", sym, RATING_BARS],
       queryFn: async ({ signal }: { signal: AbortSignal }): Promise<Candle[]> => closedOnly(await getKlines(sym, "1d", RATING_BARS, undefined, signal)),
       staleTime: 15 * 60_000,
     })),
   });
-  const bench = queries[symbols.indexOf(BENCH)]?.data;
+  const bench = queries[all.indexOf(BENCH)]?.data;
   const version = queries.map((q) => q.dataUpdatedAt).join(",");
   const contexts = useMemo(() => {
     const out: { symbol: string; ctx: RatingContext }[] = [];
     if (!bench) return out;
-    symbols.forEach((sym, k) => {
+    all.forEach((sym, k) => {
       const q = queries[k];
-      if (!q?.data) return;
+      if (!q?.data || (!symbols.includes(sym) && sym !== BENCH)) return;
       const hit = ctxCache.get(sym);
       if (hit && hit.at === q.dataUpdatedAt && hit.fg === fg.dataUpdatedAt) return out.push({ symbol: sym, ctx: hit.ctx });
       const ctx = buildRatingContext({ candles: q.data, bench, fearGreed: fg.data ?? [], isBench: sym === BENCH });
@@ -91,8 +83,24 @@ export function useUniverseContexts(size: number) {
     });
     return out;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [version, symbols.join(","), fg.dataUpdatedAt, bench]);
-  return { symbols, contexts, loaded: queries.filter((q) => q.data).length, total: symbols.length };
+  }, [version, all.join(","), fg.dataUpdatedAt, bench]);
+  const errors = queries.filter((q) => q.error).length;
+  return { contexts, loaded: queries.filter((q) => q.data).length, total: all.length, errors };
+}
+
+/**
+ * Daily history and rating contexts for the top `size` coins by volume (BTC always included),
+ * loaded in parallel and cached; `loaded`/`total` drive progress UI.
+ */
+export function useUniverseContexts(size: number) {
+  const { data: tickers } = useTickers();
+  const symbols = useMemo(() => {
+    if (!tickers) return [];
+    const top = universe(tickers, size).map((x) => x.symbol);
+    return top.includes(BENCH) ? top : [BENCH, ...top.slice(0, size - 1)];
+  }, [tickers, size]);
+  const { contexts, loaded, total } = useContextsFor(symbols);
+  return { symbols, contexts, loaded, total };
 }
 
 /** The recommender, recomputed when data, weights or risk settings change. */

@@ -1,8 +1,8 @@
 "use client";
 
 import { formatCompact, formatPrice } from "@cv/core";
-import { calibration, type InvestmentPlan, type MetricResult, type PillarResult, type Rating, type Verdict } from "@cv/rating";
-import { Bell, ChevronDown, ClipboardList, History, ShieldAlert } from "lucide-react";
+import { calibration, VERDICT_THRESHOLDS, type InvestmentPlan, type MetricResult, type PillarResult, type Rating, type Verdict } from "@cv/rating";
+import { Bell, BellRing, ChevronDown, ClipboardList, History, ShieldAlert } from "lucide-react";
 import { useState } from "react";
 import { useT, type TKey } from "@/lib/i18n";
 import { useAlerts } from "@/lib/store/alerts";
@@ -64,7 +64,7 @@ export function formatMetric(m: Pick<MetricResult, "id" | "unit" | "value">, t: 
   return v.toFixed(2);
 }
 
-export function RatingSummary({ rating, compact = false }: { rating: Rating; compact?: boolean }) {
+export function RatingSummary({ rating, compact = false, symbol }: { rating: Rating; compact?: boolean; symbol?: string }) {
   const t = useT();
   const preset = useSettings((s) => s.ratingPreset);
   return (
@@ -90,10 +90,39 @@ export function RatingSummary({ rating, compact = false }: { rating: Rating; com
               {t("rating.weights")}: <b className="text-muted">{t(`rating.preset.${preset}` as TKey)}</b>
             </span>
           </div>
+          {symbol && <RatingAlertButton symbol={symbol} score={rating.score} />}
         </div>
       </div>
       <PillarList pillars={rating.pillars} />
     </div>
+  );
+}
+
+/**
+ * One-click rating alert: below "Accumulate" it watches for the upgrade, at or above it for a
+ * drop under "Hold" (the exit warning).
+ */
+function RatingAlertButton({ symbol, score }: { symbol: string; score: number }) {
+  const t = useT();
+  const add = useAlerts((s) => s.add);
+  const upgrade = score < VERDICT_THRESHOLDS.accumulate;
+  const type = upgrade ? "rating_above" : "rating_below";
+  const value = upgrade ? VERDICT_THRESHOLDS.accumulate : VERDICT_THRESHOLDS.hold;
+  const exists = useAlerts((s) => s.alerts.some((a) => a.active && a.symbol === symbol && a.type === type && a.value === value));
+  const label = t(upgrade ? "rating.alertAbove" : "rating.alertBelow", { v: value });
+  return (
+    <Button
+      size="xs"
+      variant="ghost"
+      disabled={exists}
+      className="-ml-2"
+      onClick={() => {
+        add({ symbol, type, value, once: true });
+        toast({ title: t("alerts.created"), body: label, tone: "success" });
+      }}
+    >
+      {exists ? <BellRing size={12} /> : <Bell size={12} />} {exists ? t("rating.alertSet") : label}
+    </Button>
   );
 }
 

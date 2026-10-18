@@ -9,6 +9,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc -p tsconfig.json --noEmit && pnpm --filter @cv/web typecheck",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "backtest": "tsx scripts/backtest-cli.ts",
     "validate:oos": "tsx scripts/validate-oos.ts",
     "db:migrate": "pnpm --filter @cv/db migrate",
@@ -21,20 +23,27 @@
     "recommend": "tsx scripts/recommend-now.ts"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.14.0",
     "@cv/server": "workspace:*",
+    "@eslint/js": "^10.0.1",
+    "@next/eslint-plugin-next": "^16.4.2",
     "@playwright/test": "~1.56.1",
     "@types/node": "^22.10.0",
+    "eslint": "^10.13.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.13.0",
     "technicalindicators": "^3.1.0",
     "tsx": "^4.19.0",
     "typescript": "5.9.3",
+    "typescript-eslint": "^8.71.2",
     "vitest": "^5.0.5"
   },
   "type": "module",
   "dependencies": {
     "@cv/backtest": "workspace:*",
     "@cv/core": "workspace:*",
-    "@cv/signals": "workspace:*",
+    "@cv/exchange": "workspace:*",
     "@cv/rating": "workspace:*",
-    "@cv/exchange": "workspace:*"
+    "@cv/signals": "workspace:*"
   }
 }

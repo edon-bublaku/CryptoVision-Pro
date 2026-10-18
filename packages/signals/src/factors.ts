@@ -138,7 +138,7 @@ export const FACTORS: FactorDef[] = [
       if (!fin(k) || !fin(d) || !fin(kp) || !fin(dp)) return null;
       const crossUp = kp <= dp && k > d;
       const crossDown = kp >= dp && k < d;
-      let s = 0;
+      let s: number;
       if (crossUp && k < 30) s = 0.9;
       else if (crossDown && k > 70) s = -0.9;
       else if (k < 20) s = 0.3;

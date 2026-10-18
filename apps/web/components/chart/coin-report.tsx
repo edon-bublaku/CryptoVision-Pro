@@ -80,7 +80,7 @@ function RatingSections({ symbol }: { symbol: string }) {
   return (
     <>
       <Section title={t("rating.title")} right={<span className="text-[10px] text-faint">1D · {t("rating.metricsCount", { n: rating.pillars.reduce((s, p) => s + p.metrics.length, 0) })}</span>}>
-        <RatingSummary rating={rating} />
+        <RatingSummary rating={rating} symbol={symbol} />
         <div className="mt-3">
           <HistoricalEvidence verdict={rating.verdict} />
         </div>

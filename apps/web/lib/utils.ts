@@ -26,6 +26,15 @@ export function timeAgo(ts: number, lang: "sq" | "en"): string {
   return rtf.format(-Math.round(s / 86400), "day");
 }
 
+const SQ_MONTHS = ["Jan", "Shk", "Mar", "Pri", "Maj", "Qer", "Kor", "Gus", "Sht", "Tet", "Nën", "Dhj"];
+
+/** "19 Jul" / "19 Kor" (UTC). CLDR's Albanian short months render as "M07", so they are spelled out here. */
+export function shortDate(sec: number, lang: "sq" | "en", withYear = false): string {
+  const d = new Date(sec * 1000);
+  const month = lang === "sq" ? SQ_MONTHS[d.getUTCMonth()] : d.toLocaleString("en-GB", { month: "short", timeZone: "UTC" });
+  return `${d.getUTCDate()} ${month}${withYear ? ` ${String(d.getUTCFullYear()).slice(2)}` : ""}`;
+}
+
 export function download(filename: string, content: string | Blob, type = "application/json") {
   const blob = typeof content === "string" ? new Blob([content], { type }) : content;
   const url = URL.createObjectURL(blob);

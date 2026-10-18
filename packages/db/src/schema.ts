@@ -127,7 +127,7 @@ export const alerts = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     symbol: text("symbol").notNull(),
-    type: text("type", { enum: ["price_above", "price_below", "change_pct", "rsi_above", "rsi_below", "signal", "drawing"] }).notNull(),
+    type: text("type", { enum: ["price_above", "price_below", "change_pct", "rsi_above", "rsi_below", "rating_above", "rating_below", "signal", "drawing"] }).notNull(),
     value: money("value").notNull(),
     timeframe: text("timeframe"),
     /** For drawing alerts: the line geometry at creation time. */

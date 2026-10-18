@@ -8,7 +8,7 @@ import { useMemo, useState } from "react";
 import { Badge, Button, Card, CardHeader, Empty, Field, Input, Segmented, Select, PageHeader } from "@/components/ui/primitives";
 import { ActionBadge, CoinIcon, Pct, Sparkline } from "@/components/ui/viz";
 import { useT } from "@/lib/i18n";
-import { useScan, type Snapshot } from "@/lib/store/scan";
+import { useScan } from "@/lib/store/scan";
 import { useScanner } from "@/lib/use-scanner";
 import { useSignalRows } from "@/lib/use-signal-rows";
 import { useSavedScans, type Metric, type Rule } from "@/lib/store/screens";
@@ -106,7 +106,7 @@ export default function ScreenerPage() {
             <CardHeader
               title={t("screener.addRule")}
               right={
-                <Button size="xs" variant="ghost" onClick={() => setRules([...rules, { metric: "rsi", op: "<", value: 30 }])}>
+                <Button size="xs" variant="ghost" onClick={() => setRules([...rules, { metric: "rsi", op: "<", value: 30 }])} aria-label={t("screener.addRule")}>
                   <Plus size={13} />
                 </Button>
               }
@@ -114,18 +114,18 @@ export default function ScreenerPage() {
             <div className="space-y-2 p-3">
               {rules.map((r, i) => (
                 <div key={i} className="flex items-center gap-1.5">
-                  <Select className="min-w-0 flex-1" value={r.metric} onChange={(e) => setRules(rules.map((x, k) => (k === i ? { ...x, metric: e.target.value as Metric } : x)))}>
+                  <Select className="min-w-0 flex-1" aria-label={t("screener.metric")} value={r.metric} onChange={(e) => setRules(rules.map((x, k) => (k === i ? { ...x, metric: e.target.value as Metric } : x)))}>
                     {METRICS.map((m) => (
                       <option key={m.id} value={m.id}>
                         {m.label}
                       </option>
                     ))}
                   </Select>
-                  <Select className="w-14" value={r.op} onChange={(e) => setRules(rules.map((x, k) => (k === i ? { ...x, op: e.target.value as Op } : x)))}>
+                  <Select className="w-14" aria-label={t("screener.op")} value={r.op} onChange={(e) => setRules(rules.map((x, k) => (k === i ? { ...x, op: e.target.value as Op } : x)))}>
                     <option value=">">&gt;</option>
                     <option value="<">&lt;</option>
                   </Select>
-                  <Input className="w-20" type="number" step="any" value={r.value} onChange={(e) => setRules(rules.map((x, k) => (k === i ? { ...x, value: +e.target.value } : x)))} />
+                  <Input className="w-20" type="number" step="any" aria-label={t("alerts.value")} value={r.value} onChange={(e) => setRules(rules.map((x, k) => (k === i ? { ...x, value: +e.target.value } : x)))} />
                   <button className="p-1 text-faint hover:text-bear" onClick={() => setRules(rules.filter((_, k) => k !== i))} aria-label={t("common.delete")}>
                     <Trash2 size={14} />
                   </button>

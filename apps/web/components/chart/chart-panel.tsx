@@ -93,7 +93,6 @@ export function ChartPanel(props: Props) {
   const colorblind = useSettings((s) => s.colorblind);
   const tool = useChartUi((s) => s.tool);
   const setTool = useChartUi((s) => s.setTool);
-  const stayInTool = useChartUi((s) => s.stayInTool);
   const drawingsHidden = useChartUi((s) => s.drawingsHidden);
   const replay = useChartUi((s) => s.replay);
   const drawings = useDrawings((s) => s.bySymbol[symbol]);
@@ -231,11 +230,12 @@ export function ChartPanel(props: Props) {
     });
 
     setChartKey((k) => k + 1);
+    const seriesMap = indSeries.current;
     return () => {
       props.registerHandle?.(null);
       controllerRef.current?.dispose();
       controllerRef.current = null;
-      indSeries.current.clear();
+      seriesMap.clear();
       priceLines.current = [];
       chart.remove();
       chartRef.current = null;

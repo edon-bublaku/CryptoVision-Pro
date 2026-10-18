@@ -32,7 +32,7 @@ function OperandInput({ value, onChange, allowValue = true, className }: { value
         ))}
         {allowValue && <option value="__value">{t("builder.number")}</option>}
       </Select>
-      {isValue && <Input type="number" step="any" className="w-20" value={value.value} onChange={(e) => onChange({ value: Number.isFinite(+e.target.value) ? +e.target.value : 0 })} />}
+      {isValue && <Input type="number" step="any" className="w-20" aria-label={t("alerts.value")} value={value.value} onChange={(e) => onChange({ value: Number.isFinite(+e.target.value) ? +e.target.value : 0 })} />}
     </div>
   );
 }

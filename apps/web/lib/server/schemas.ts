@@ -51,7 +51,7 @@ export const portfolioInput = z.object({
 export const alertSchema = z.object({
   id: z.string().uuid(),
   symbol,
-  type: z.enum(["price_above", "price_below", "change_pct", "rsi_above", "rsi_below", "signal", "drawing"]),
+  type: z.enum(["price_above", "price_below", "change_pct", "rsi_above", "rsi_below", "rating_above", "rating_below", "signal", "drawing"]),
   value: finite,
   timeframe: z.enum(TIMEFRAMES as [string, ...string[]]).optional(),
   drawingId: z.string().max(64).optional(),

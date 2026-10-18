@@ -3,7 +3,9 @@
 import { formatPrice, lastFinite, TIMEFRAME_SECONDS, type Timeframe } from "@cv/core";
 import { rsi } from "@cv/indicators";
 import { useEffect, useRef } from "react";
-import { closedOnly, getKlines } from "@cv/exchange";
+import { closedOnly, getFearGreed, getKlines } from "@cv/exchange";
+import { buildRatingContext, checkRatingAlert, rateAt } from "@cv/rating";
+import { BENCH, RATING_BARS } from "@/lib/data/rating";
 import { useLivePrices } from "@/lib/data/hooks";
 import { translate } from "@/lib/i18n";
 import { useAlerts, type Alert } from "@/lib/store/alerts";
@@ -11,7 +13,7 @@ import { useAuth } from "@/lib/store/auth";
 import { useDrawings } from "@/lib/store/drawings";
 import { useScan, type TrackedSignal } from "@/lib/store/scan";
 import { evaluateOutcome } from "@cv/engine";
-import { useSettings } from "@/lib/store/settings";
+import { activeRatingWeights, useSettings } from "@/lib/store/settings";
 import { drawingLevelAt } from "../chart/chart-tools";
 import { toast } from "../ui/toast";
 
@@ -107,6 +109,38 @@ export function AlertEngine() {
     return () => clearInterval(id);
   }, []);
 
+  // CV Rating alerts: the rating is built on daily candles, so a 15-minute poll is plenty.
+  useEffect(() => {
+    const run = async () => {
+      if (useAuth.getState().user && useAuth.getState().health?.worker) return;
+      const list = useAlerts.getState().alerts.filter((a) => a.active && (a.type === "rating_above" || a.type === "rating_below"));
+      if (!list.length) return;
+      try {
+        const daily = async (symbol: string) => closedOnly(await getKlines(symbol, "1d", RATING_BARS));
+        const bench = await daily(BENCH);
+        const fearGreed = await getFearGreed(RATING_BARS).catch(() => []);
+        const weights = activeRatingWeights(useSettings.getState());
+        for (const a of list) {
+          if (a.type !== "rating_above" && a.type !== "rating_below") continue;
+          const candles = a.symbol === BENCH ? bench : await daily(a.symbol);
+          const rating = rateAt(buildRatingContext({ candles, bench, fearGreed, isBench: a.symbol === BENCH }), undefined, weights);
+          if (!rating) continue;
+          const r = checkRatingAlert(a.type, a.value, rating.score, a.lastSide);
+          if (r.side !== a.lastSide) useAlerts.getState().update(a.id, { lastSide: r.side });
+          if (r.fire) notify(a, `CV Rating ${rating.score.toFixed(0)} (${rating.grade}) ${a.type === "rating_above" ? "≥" : "≤"} ${a.value}`);
+        }
+      } catch {
+        /* retry next tick */
+      }
+    };
+    const first = setTimeout(run, 20_000);
+    const id = setInterval(run, 15 * 60_000);
+    return () => {
+      clearTimeout(first);
+      clearInterval(id);
+    };
+  }, []);
+
   // "New active signal" alerts fire when a scan produces one for the symbol.
   const rows = useScan((s) => s.rows);
   const scannedAt = useScan((s) => s.scannedAt);
@@ -120,7 +154,7 @@ export function AlertEngine() {
       const row = rows.find((r) => r.symbol === a.symbol && r.signal.status === "ACTIVE");
       if (row) notify(a, `${translate(lang, `action.${row.signal.action}`)} · ${row.signal.timeframe} · score ${row.signal.score}`);
     }
-  }, [scannedAt, rows, lang]);
+  }, [scannedAt, rows, lang, serverAlerting]);
 
   // Track record: follow ACTIVE signals until TP/SL/expiry.
   useEffect(() => {

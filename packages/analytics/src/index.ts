@@ -50,7 +50,12 @@ export function clusterOrder(symbols: readonly string[], matrix: number[][]): nu
   while (left.size) {
     let best = -1;
     let bestCorr = -Infinity;
-    for (const j of left) if (matrix[cur]![j]! > bestCorr) (bestCorr = matrix[cur]![j]!), (best = j);
+    for (const j of left) {
+      if (matrix[cur]![j]! > bestCorr) {
+        bestCorr = matrix[cur]![j]!;
+        best = j;
+      }
+    }
     order.push(best);
     left.delete(best);
     cur = best;

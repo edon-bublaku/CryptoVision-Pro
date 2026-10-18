@@ -14,7 +14,7 @@ import { useSettings, type SettingsState } from "@/lib/store/settings";
 import { toast } from "../ui/toast";
 
 /** Settings that follow the user across devices (never secrets such as the personal bot token). */
-const SYNCED_SETTINGS = ["lang", "theme", "colorblind", "riskProfile", "equity", "riskPct", "maxLeverage", "maxPositions", "feePct", "defaultTf", "scanSize", "watchlist", "chart", "ratingPreset", "ratingWeights", "allowShortPlans"] as const;
+const SYNCED_SETTINGS = ["lang", "theme", "colorblind", "reduceMotion", "compact", "riskProfile", "equity", "riskPct", "maxLeverage", "maxPositions", "feePct", "defaultTf", "scanSize", "watchlist", "chart", "ratingPreset", "ratingWeights", "allowShortPlans"] as const;
 
 type StateDoc = { value: unknown; version: number };
 interface SyncSnapshot {

@@ -1,7 +1,9 @@
 import { formatPrice, lastFinite, type Timeframe } from "@cv/core";
-import { activeAlerts, markTriggered, setAlertSide, type Db } from "@cv/db";
-import { binanceStream, closedOnly, getKlines, type MiniTicker } from "@cv/exchange";
+import type { Candle } from "@cv/core";
+import { activeAlerts, getAllState, markTriggered, setAlertSide, type Db } from "@cv/db";
+import { binanceStream, closedOnly, getFearGreed, getKlines, type MiniTicker } from "@cv/exchange";
 import { rsi } from "@cv/indicators";
+import { buildRatingContext, checkRatingAlert, rateAt, resolveWeights, type PillarWeights, type RatingContext } from "@cv/rating";
 import { log } from "@cv/server";
 import { deliver } from "./notify";
 
@@ -13,6 +15,8 @@ const LABEL: Record<string, string> = {
   change_pct: "Ndryshim 24h",
   rsi_above: "RSI mbi",
   rsi_below: "RSI nën",
+  rating_above: "CV Rating mbi",
+  rating_below: "CV Rating nën",
   drawing: "Kalim i vizatimit",
   signal: "Sinjal i ri aktiv",
 };
@@ -134,5 +138,44 @@ export async function runSignalAlerts(db: Db, active: { symbol: string; timefram
   for (const a of list) {
     const s = active.find((x) => x.symbol === a.symbol && (!a.timeframe || a.timeframe === x.timeframe));
     if (s) await fire(db, a, `${s.action} · ${s.timeframe} · score ${s.score}`);
+  }
+}
+
+const RATING_BARS = 420;
+
+/**
+ * CV Rating alerts on daily candles, scored with each user's own pillar weights (from their
+ * synced settings) so the alert agrees with what they see in the app. Edge-triggered via
+ * `lastSide`: fires on entering the zone, re-arms after leaving it.
+ */
+export async function runRatingAlerts(db: Db) {
+  const list = (await activeAlerts(db)).filter((a) => a.type === "rating_above" || a.type === "rating_below");
+  if (!list.length) return;
+  const daily = async (symbol: string): Promise<Candle[]> => closedOnly(await getKlines(symbol, "1d", RATING_BARS));
+  const bench = await daily("BTCUSDT");
+  const fearGreed = await getFearGreed(RATING_BARS).catch(() => []);
+  const contexts = new Map<string, RatingContext | null>();
+  const weights = new Map<string, PillarWeights>();
+  for (const a of list) {
+    if (!contexts.has(a.symbol)) {
+      try {
+        const candles = a.symbol === "BTCUSDT" ? bench : await daily(a.symbol);
+        contexts.set(a.symbol, buildRatingContext({ candles, bench, fearGreed, isBench: a.symbol === "BTCUSDT" }));
+      } catch {
+        contexts.set(a.symbol, null);
+      }
+    }
+    const ctx = contexts.get(a.symbol);
+    if (!ctx) continue;
+    if (!weights.has(a.userId)) {
+      const s = (await getAllState(db, a.userId)).settings?.value as { ratingPreset?: unknown; ratingWeights?: unknown } | undefined;
+      weights.set(a.userId, resolveWeights(s?.ratingPreset, s?.ratingWeights));
+    }
+    const rating = rateAt(ctx, undefined, weights.get(a.userId));
+    if (!rating) continue;
+    const type = a.type as "rating_above" | "rating_below";
+    const r = checkRatingAlert(type, +a.value, rating.score, a.lastSide as -1 | 1 | null);
+    if (r.side !== a.lastSide) await setAlertSide(db, a.id, r.side);
+    if (r.fire) await fire(db, a, `CV Rating ${rating.score.toFixed(0)} (${rating.grade}) ${type === "rating_above" ? "≥" : "≤"} ${+a.value}`);
   }
 }

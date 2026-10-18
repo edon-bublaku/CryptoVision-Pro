@@ -27,6 +27,9 @@
   --brand: linear-gradient(135deg, #7b8cff 0%, #22d3ee 55%, #34d399 100%);
   --shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 20px 40px -24px rgba(0, 0, 0, 0.7);
   --glow: 0 0 0 1px rgba(123, 140, 255, 0.35), 0 8px 30px -8px rgba(123, 140, 255, 0.55);
+  /* Text on solid bull/bear fills, chosen per palette for ≥ 4.5:1 contrast. */
+  --on-bull: #060911;
+  --on-bear: #060911;
   color-scheme: dark;
 }
 
@@ -44,6 +47,7 @@
   --accent: #4f5df5;
   --bull: #0e9f6e;
   --bear: #e02d43;
+  --on-bear: #ffffff;
   --shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 12px 32px -20px rgba(15, 23, 42, 0.25);
   color-scheme: light;
 }
@@ -51,6 +55,7 @@
 :root[data-cb="1"] {
   --bull: #3b82f6;
   --bear: #f59e0b;
+  --on-bear: #060911;
 }
 
 @theme inline {
@@ -261,6 +266,19 @@ body {
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
   }
+}
+/* The same, chosen in Settings. */
+html[data-motion="reduce"] *,
+html[data-motion="reduce"] *::before,
+html[data-motion="reduce"] *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+/* Compact density: Tailwind spacing and type are rem-based, so this scales the whole UI. */
+html[data-density="compact"] {
+  font-size: 14px;
 }
 
 /* Markdown rendered from AI explanations. */

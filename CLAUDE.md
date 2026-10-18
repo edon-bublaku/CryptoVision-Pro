@@ -463,10 +463,10 @@ PostgreSQL dhe Redis mbeten opsionalë, për shkallëzim. `DATABASE_URL=off` jep
 | F4 | ✅ | Undo/redo, magnet, stile, alert nga vizatimi. Persistencë lokale + sinkronizim në DB për përdoruesit me llogari |
 | F5 | ✅ | Regjimi, 19 faktorë (përfshirë derivatet), 6 strategji, CV Rating 0–100 (8 shtylla, 25 metrika me pesha) + plani i investimit ([ADR 0007](docs/decisions/0007-cv-rating.md)), strategji custom pa kod ([ADR 0006](docs/decisions/0006-paper-trading-custom-strategies.md)), plane rreziku me decimal.js |
 | F6 | ✅ | Backtest event-driven (edhe për strategjitë custom), walk-forward, Monte Carlo, Backtest Lab, gate për coin ([ADR 0002](docs/decisions/0002-backtest-gate.md)) |
-| F7 | ✅ | Paneli (me rekomandimet e sotme), Rekomandimet (`/recommendations`, [ADR 0008](docs/decisions/0008-recommender.md)), Vlerësimi (`/rating`), Sinjalet + track record, Raporti i coinit (CV Rating + plani + sinjali i hyrjes), Skaneri, Tregu (RRG, korrelacion, beta, volatilitet), `/welcome` |
-| F8 | ✅ | Auth me 2FA ([ADR 0003](docs/decisions/0003-custom-auth.md)), portofoli + paper trading (LIMIT/STOP, SL/TP, likuidim), alertet, worker, njoftime: aplikacion, browser, Web Push, Telegram, email, SSE |
+| F7 | ✅ | Paneli (me rekomandimet e sotme), Rekomandimet (`/recommendations`, [ADR 0008](docs/decisions/0008-recommender.md)), Vlerësimi (`/rating`), Sinjalet + track record, Raporti i coinit (CV Rating + plani + sinjali i hyrjes), Skaneri, Tregu (RRG, korrelacion, beta, volatilitet), Krahaso (`/compare`, 2–4 coin), Kalkulatorët (`/tools`, `@cv/risk` calculators), `/welcome`. Navigim i grupuar (`components/layout/nav.ts`), paleta e komandave (Ctrl/⌘ K), menuja "Më shumë" në mobile |
+| F8 | ✅ | Auth me 2FA ([ADR 0003](docs/decisions/0003-custom-auth.md)), portofoli + paper trading (LIMIT/STOP, SL/TP, likuidim), alertet (përfshirë CV Rating mbi/nën, [ADR 0009](docs/decisions/0009-rating-alerts-and-quality-gates.md)), worker, njoftime: aplikacion, browser, Web Push, Telegram, email, SSE |
 | F9 | ✅ | 31 mjete vizatimi, derivate OKX, SMC, modele, shpjegim AI me Claude |
-| F10 | ◐ | i18n sq/en, temë e çelët, daltonizëm, PWA, CSP + headers, rate limit, audit log, pino, çelës kriptimi i gjeneruar. **Mungon:** OpenTelemetry/Sentry, ESLint |
+| F10 | ◐ | i18n sq/en, temë e çelët, daltonizëm, pa animacione, pamje kompakte, PWA, CSP + headers, rate limit, audit log, pino, çelës kriptimi i gjeneruar, ESLint, axe (WCAG 2.1 AA) dhe teste responsive 375/768/1440 në CI. **Mungon:** OpenTelemetry/Sentry |
 
 **Kontratat aktuale** (ndryshohen vetëm me ADR):
 
@@ -483,13 +483,13 @@ PostgreSQL dhe Redis mbeten opsionalë, për shkallëzim. `DATABASE_URL=off` jep
 **Komandat reale:**
 
 - `pnpm dev` (platforma e plotë), `pnpm build && pnpm start`
-- `pnpm test` (130 teste, përfshirë DB-në mbi PGlite), `pnpm typecheck`, `pnpm test:e2e` (18 teste)
+- `pnpm test` (145 teste, përfshirë DB-në mbi PGlite), `pnpm typecheck`, `pnpm lint`, `pnpm test:e2e` (28 teste, përfshirë `e2e/quality.spec.ts`)
 - `pnpm db:generate`, `pnpm db:migrate`, `pnpm test:integration` (kundër PostgreSQL)
 - `pnpm worker` (vetëm me `WORKER=external` dhe PostgreSQL)
 - `pnpm backtest …`, `pnpm validate:oos`, `pnpm validate:rating`, `pnpm recommend`
 - `pnpm dev:clean` (pastron cache-in e Turbopack kur faqja rifreskohet pa pushim)
 
-`pnpm db:seed` dhe `pnpm lint` nga §10–11 nuk ekzistojnë ende.
+`pnpm db:seed` nga §11 nuk ekziston ende.
 
 **Rregulla të shtuara:**
 
@@ -498,6 +498,9 @@ PostgreSQL dhe Redis mbeten opsionalë, për shkallëzim. `DATABASE_URL=off` jep
 - Çdo ndryshim në metrikat, kurbat, peshat ose pragjet e CV Rating, ose në rregullat e rekomanduesit, kërkon `pnpm validate:rating`,
   `calibration.json` të ri dhe përditësimin e `docs/strategies/rating.md`.
 - Të dyja rregullat vlejnë edhe kur numrat përkeqësohen.
+- Çdo faqe e re shtohet te `components/layout/nav.ts` (sidebar, menuja mobile dhe paleta e komandave e lexojnë që andej)
+  dhe te `PAGES` në `e2e/quality.spec.ts`, që të kontrollohet për tejkalim në mobile dhe për aksesueshmëri.
+- Tekst mbi sfonde të plota bull/bear përdor `text-(--on-bull)` / `text-(--on-bear)`, kurrë `text-white`.
 
 ---
 

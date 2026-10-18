@@ -46,8 +46,8 @@ Parametrat e testit:
 
 | Grupi | Trade | Win rate | Profit factor | Pritshmëria |
 |---|---|---|---|---|
-| Të gjitha strategjitë | 1171 | 39.4% | 0.71 | −0.15R |
-| Vetëm strategjitë që kaluan gate-in | 328 | 40.5% | 0.75 | −0.13R |
+| Të gjitha strategjitë | 1178 | 39.2% | 0.71 | −0.15R |
+| Vetëm strategjitë që kaluan gate-in | 358 | 39.9% | 0.75 | −0.13R |
 
 **Përfundimi i ndershëm:** asnjë nga këto rregulla klasike të analizës teknike nuk tregon avantazh
 të qëndrueshëm jashtë mostrës në këtë periudhë. Kjo është arsyeja pse aplikacioni:

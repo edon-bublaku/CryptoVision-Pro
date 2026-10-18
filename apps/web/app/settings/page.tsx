@@ -1,17 +1,20 @@
 "use client";
 
 import { TIMEFRAMES, type Timeframe } from "@cv/core";
+import { WEIGHT_PRESETS, type PresetId } from "@cv/rating";
 import type { RiskProfile } from "@cv/risk";
-import { Download, Send, Settings, Trash2, Upload } from "lucide-react";
+import { Download, Gauge, Send, Settings, Trash2, Upload } from "lucide-react";
+import Link from "next/link";
 import { useRef } from "react";
 import { sendTelegram } from "@/components/layout/alert-engine";
 import { Button, Card, CardHeader, Field, Input, Segmented, Select, Switch, PageHeader } from "@/components/ui/primitives";
 import { toast } from "@/components/ui/toast";
-import { useT } from "@/lib/i18n";
+import { useT, type TKey } from "@/lib/i18n";
 import { useSettings } from "@/lib/store/settings";
 import { download } from "@/lib/utils";
 
-const STORE_KEYS = ["cv.settings", "cv.drawings", "cv.portfolio", "cv.alerts", "cv.scan", "cv.chart-ui", "cv.screens"];
+const STORE_KEYS = ["cv.settings", "cv.drawings", "cv.portfolio", "cv.alerts", "cv.scan", "cv.chart-ui", "cv.screens", "cv.strategies"];
+const PRESETS = [...(Object.keys(WEIGHT_PRESETS) as PresetId[]), "custom"] as const;
 
 export default function SettingsPage() {
   const t = useT();
@@ -31,7 +34,35 @@ export default function SettingsPage() {
           <Field label={t("settings.theme")} group>
             <Segmented value={s.theme} onChange={(v) => s.set({ theme: v })} options={[{ value: "dark", label: t("settings.theme.dark") }, { value: "light", label: t("settings.theme.light") }]} />
           </Field>
+        </div>
+        <div className="grid gap-3 border-t border-line p-4 sm:grid-cols-3">
           <Switch checked={s.colorblind} onChange={(v) => s.set({ colorblind: v })} label={t("settings.colorblind")} />
+          <Switch checked={s.reduceMotion} onChange={(v) => s.set({ reduceMotion: v })} label={t("settings.reduceMotion")} />
+          <Switch checked={s.compact} onChange={(v) => s.set({ compact: v })} label={t("settings.compact")} />
+        </div>
+      </Card>
+
+      <Card>
+        <CardHeader
+          title="CV Rating"
+          subtitle={t("settings.ratingHelp")}
+          right={
+            <Link href="/rating" className="inline-flex items-center gap-1.5 text-xs text-accent hover:underline">
+              <Gauge size={13} /> {t("settings.ratingOpen")}
+            </Link>
+          }
+        />
+        <div className="grid gap-4 p-4 sm:grid-cols-2 sm:items-end">
+          <Field label={t("rating.weights")}>
+            <Select value={s.ratingPreset} onChange={(e) => s.set({ ratingPreset: e.target.value as PresetId | "custom" })}>
+              {PRESETS.map((p) => (
+                <option key={p} value={p}>
+                  {t(`rating.preset.${p}` as TKey)}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <Switch checked={s.allowShortPlans} onChange={(v) => s.set({ allowShortPlans: v })} label={t("settings.allowShort")} />
         </div>
       </Card>
 

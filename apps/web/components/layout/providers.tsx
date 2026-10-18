@@ -15,6 +15,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const theme = useSettings((s) => s.theme);
   const colorblind = useSettings((s) => s.colorblind);
   const lang = useSettings((s) => s.lang);
+  const reduceMotion = useSettings((s) => s.reduceMotion);
+  const compact = useSettings((s) => s.compact);
 
   useEffect(() => {
     setMounted(true);
@@ -26,7 +28,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
     el.dataset.theme = theme;
     el.dataset.cb = colorblind ? "1" : "0";
     el.lang = lang;
-  }, [theme, colorblind, lang]);
+    el.dataset.motion = reduceMotion ? "reduce" : "auto";
+    el.dataset.density = compact ? "compact" : "normal";
+  }, [theme, colorblind, lang, reduceMotion, compact]);
 
   // Everything is client-side (live data + local persistence), so render after mount to avoid
   // hydration mismatches with persisted state.
