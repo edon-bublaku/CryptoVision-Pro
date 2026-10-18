@@ -8,6 +8,7 @@ import Link from "next/link";
 import { useEffect, useMemo } from "react";
 import { Badge, Button, Card, CardHeader, Empty, Skeleton } from "@/components/ui/primitives";
 import { ActionBadge, CoinIcon, Gauge, Pct, ScoreBar, Sparkline } from "@/components/ui/viz";
+import { RecommendationCard } from "@/components/rating/recommendation-card";
 import { universe } from "@cv/exchange";
 import { useTickers } from "@/lib/data/hooks";
 import { getFearGreed, getGlobalMarket, sectorOf } from "@cv/exchange";
@@ -104,6 +105,8 @@ export default function Dashboard() {
           )}
         </Card>
       </div>
+
+      <RecommendationCard />
 
       <div className="grid gap-4 xl:grid-cols-3">
         <Card className="xl:col-span-2">

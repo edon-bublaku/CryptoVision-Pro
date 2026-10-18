@@ -110,25 +110,33 @@ export function investmentPlan(rating: Rating, r: RatingContext, s: PlanSettings
   const swing = lastSwingAt(sc, i, dir > 0 ? "low" : "high", 60)?.price;
   const extreme = extremeAt(sc, i, 20, dir > 0 ? "low" : "high");
   const pool = [...(dir > 0 ? supports : resistances), ema20, ema50, swing ?? NaN, extreme].filter((p) => fin(p) && away(p));
-  const levels = [...new Set(pool.map((p) => +p.toPrecision(10)))].sort((a, b) => (dir > 0 ? b - a : a - b));
-  const next = (from: number) => from - dir * 1.5 * atr;
+  // Nearest first, and at least 0.75 ATR apart so the ladder actually averages into weakness.
+  const levels: number[] = [];
+  for (const p of [...new Set(pool)].sort((a, b) => (dir > 0 ? b - a : a - b))) {
+    const prev = levels[levels.length - 1];
+    if (prev === undefined || Math.abs(prev - p) >= 0.75 * atr) levels.push(p);
+  }
+  // Rungs and stops are measured in ATR but capped in % so very volatile coins keep a usable ladder.
+  const next = (from: number) => from - dir * Math.min(1.5 * atr, 0.07 * from);
+  const maxGap = (from: number) => Math.min(3 * atr, 0.1 * from);
 
   const extended = dir > 0 ? rsi > 70 || c - ema20 > 2 * atr : rsi < 30 || ema20 - c > 2 * atr;
   const entries: Tranche[] = [];
-  if (stance === "accumulate" && dir > 0) {
-    entries.push({ kind: "market", price: c, sizePct: extended ? 20 : 40, reason: extended ? "plan.reason.marketSmall" : "plan.reason.market" });
-    const l1 = levels[0] ?? next(c);
-    const l2 = levels[1] ?? next(l1);
-    entries.push({ kind: "limit", price: l1, sizePct: extended ? 45 : 35, reason: levels[0] !== undefined ? "plan.reason.level" : "plan.reason.atr" });
-    entries.push({ kind: "limit", price: l2, sizePct: extended ? 35 : 25, reason: levels[1] !== undefined ? "plan.reason.level" : "plan.reason.atr" });
-  } else {
-    const l1 = levels[0] ?? next(c);
-    const l2 = levels[1] ?? next(l1);
-    const l3 = levels[2] ?? next(l2);
-    entries.push({ kind: "limit", price: l1, sizePct: 40, reason: levels[0] !== undefined ? "plan.reason.level" : "plan.reason.atr" });
-    entries.push({ kind: "limit", price: l2, sizePct: 35, reason: levels[1] !== undefined ? "plan.reason.level" : "plan.reason.atr" });
-    entries.push({ kind: "limit", price: l3, sizePct: 25, reason: levels[2] !== undefined ? "plan.reason.level" : "plan.reason.atr" });
-  }
+  // Walk down the ladder: take the next level if it is within 3 ATR (max 10%) of the previous rung,
+  // otherwise step 1.5 ATR (max 7%). A support 30–40% away is no use for a position you build now.
+  let prev = c;
+  let li = 0;
+  const rung = (): { price: number; reason: string } => {
+    while (li < levels.length && Math.abs(levels[li]! - prev) < 0.75 * atr) li++;
+    const lvl = levels[li];
+    const out = lvl !== undefined && Math.abs(lvl - prev) <= maxGap(prev) ? { price: lvl, reason: "plan.reason.level" } : { price: next(prev), reason: "plan.reason.atr" };
+    if (lvl !== undefined && out.price === lvl) li++;
+    prev = out.price;
+    return out;
+  };
+  const sizes = stance === "accumulate" && dir > 0 ? (extended ? [45, 35] : [35, 25]) : [40, 35, 25];
+  if (stance === "accumulate" && dir > 0) entries.push({ kind: "market", price: c, sizePct: extended ? 20 : 40, reason: extended ? "plan.reason.marketSmall" : "plan.reason.market" });
+  for (const sizePct of sizes) entries.push({ kind: "limit", sizePct, ...rung() });
   // Normalise to exactly 100%.
   const totalPct = entries.reduce((a, e) => a + e.sizePct, 0);
   entries.forEach((e) => (e.sizePct = Math.round((e.sizePct / totalPct) * 100)));
@@ -145,8 +153,8 @@ export function investmentPlan(rating: Rating, r: RatingContext, s: PlanSettings
   let stop = deepest - dir * atr;
   if (beyond !== undefined && Math.abs(deepest - beyond) <= 1.5 * atr) stop = beyond - dir * 0.25 * atr;
   // Never more than 3.5 ATR beyond the deepest entry (and a long stop stays above zero).
-  if (dir > 0) stop = Math.max(stop, deepest - 3.5 * atr, deepest * 0.5);
-  else stop = Math.min(stop, deepest + 3.5 * atr);
+  if (dir > 0) stop = Math.max(stop, deepest - 3.5 * atr, deepest * 0.85);
+  else stop = Math.min(stop, deepest + 3.5 * atr, deepest * 1.15);
 
   const avg = entries.reduce((a, e) => a.plus(D(e.price).times(e.sizePct)), D(0)).div(100);
   const perUnit = avg.minus(stop).abs().plus(avg.plus(stop).times(s.feeRate));
@@ -162,8 +170,11 @@ export function investmentPlan(rating: Rating, r: RatingContext, s: PlanSettings
   const R = avg.minus(stop).abs().toNumber();
   const a = avg.toNumber();
 
-  const farther = (dir > 0 ? resistances : supports).filter((p) => (dir > 0 ? p >= a + R : p <= a - R));
-  const tp1 = farther[0] ?? a + dir * 1.5 * R;
+  // Targets lie at least 1R beyond the average entry AND beyond today's price: a target the market
+  // is already past would "take profit" on the tranche bought right now at a loss.
+  const floor = dir > 0 ? Math.max(a + R, c + 0.5 * atr) : Math.min(a - R, c - 0.5 * atr);
+  const farther = (dir > 0 ? resistances : supports).filter((p) => (dir > 0 ? p >= floor : p <= floor));
+  const tp1 = farther[0] ?? (dir > 0 ? Math.max(a + 1.5 * R, floor) : Math.min(a - 1.5 * R, floor));
   const tp2 = farther.find((p) => Math.abs(p - a) >= Math.abs(tp1 - a) + R) ?? a + dir * Math.max(3 * R, Math.abs(tp1 - a) + R);
   const tp3 = a + dir * Math.max(5 * R, Math.abs(tp2 - a) + 1.5 * R);
   const rrOf = (p: number) => Math.abs(p - a) / R;

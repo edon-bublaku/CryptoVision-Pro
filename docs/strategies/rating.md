@@ -41,8 +41,8 @@ Skori i metrikës = vlera bruto → 0..100 me kurbë të publikuar (lineare me n
 | 30–45 | Redukto | për mbajtësit: shit 50%, stop i fortë, rihyrje mbi 58 |
 | < 30 | Dil | për mbajtësit: dalje; short vetëm nëse e aktivizoni dhe trendi < 35 |
 
-- **Nivelet e hyrjes:** mbështetjet nga pivot-et e 300 ditëve, EMA20/EMA50, swing low-i i fundit dhe minimumi 20-ditor. Duhet të jenë të paktën 0.5 ATR larg çmimit. Kur mungojnë, përdoret hapi 1.5 ATR.
-- **Stop-loss:** 1 ATR përtej hyrjes më të thellë, ose pak përtej mbështetjes tjetër nëse ajo është brenda 1.5 ATR. Asnjëherë më larg se 3.5 ATR.
+- **Nivelet e hyrjes:** mbështetjet nga pivot-et e 300 ditëve, EMA20/EMA50, swing low-i i fundit dhe minimumi 20-ditor. Duhet të jenë të paktën 0.5 ATR larg çmimit dhe të paktën 0.75 ATR larg njëri-tjetrit. Niveli i radhës merret vetëm nëse është brenda 3 ATR (maks. 10%) nga hyrja e mëparshme; përndryshe përdoret hapi 1.5 ATR (maks. 7%).
+- **Stop-loss:** 1 ATR përtej hyrjes më të thellë, ose pak përtej mbështetjes tjetër nëse ajo është brenda 1.5 ATR. Asnjëherë më larg se 3.5 ATR ose 15% nga hyrja më e thellë.
 - **Madhësia:** `rreziku = kapitali × rrezik%`; `sasia = rreziku / (|hyrja mesatare − stop| + tarifat)`, me decimal.js.
   - Me shtyllën e rrezikut < 40: vetëm spot, pa leverage.
   - Përndryshe: leverage deri në maksimumin e cilësimeve.
@@ -125,9 +125,57 @@ Peshat e kalibruara **renditin më mirë coin-at mes tyre**: zgjedhin coin-a të
 - **Tarifat dhe slippage-i** nuk përfshihen. Kthimet janë kthime çmimi.
 - **Derivatet** (funding, OI) nuk janë në skor, sepse nuk kanë histori të besueshme. Shfaqen veçmas te raporti.
 
-## 4. Rregull për ndryshimet
+## 4. Rekomanduesi (portofoli model)
 
-Çdo ndryshim në metrika, kurba, pesha ose pragje kërkon tri hapa:
+Kodi është te `packages/rating/src/recommend.ts`. Faqja është `/recommendations`, ndërsa CLI-ja është `pnpm recommend`.
+Rregullat janë deterministe dhe nuk janë përshtatur me të dhënat:
+
+1. **Regjimi i tregut:**
+
+   | Regjimi | Kushtet | Investohet |
+   |---|---|---|
+   | Risk-on | BTC mbi EMA200 **dhe** ≥ 50% e coin-ave mbi EMA50 | 100% |
+   | Risk-off | BTC nën EMA200 **dhe** < 35% e coin-ave mbi EMA50 | 25% |
+   | Neutral | çdo rast tjetër | 60% |
+
+   Pjesa tjetër mbetet në cash.
+2. **Kandidatët:** coin-at me CV Rating ≥ 58, të marrë sipas renditjes nga më i miri. Përjashtohen:
+   - coin-at me volatilitet 30d mbi 200% në vit;
+   - coin-at me korrelacion 90d mbi 0.85 me një coin që është zgjedhur tashmë.
+3. **Numri i coin-ave:** maksimumi 6 (i ndryshueshëm 3–10).
+4. **Peshat:** volatilitet i anasjelltë × (vlerësimi − 50) / 50, me tavan 35% për coin, të shkallëzuara sipas regjimit.
+5. **Plani i çdo coin-i:** ai i seksionit 2. Në portofol, madhësia vjen nga pesha, ndërsa plani përcakton nivelet.
+
+### Si do të kishte performuar (`pnpm validate:rating`)
+
+**Metoda:** të njëjtat rregulla zbatohen çdo 30 ditë mbi 30 coin-at, nga 2021-12-29 deri më 2026-10-04 (58 periudha).
+Tarifa është 0.1% mbi qarkullimin, dhe portofoli mbahet 30 ditë.
+
+| | Kthimi total | CAGR | Rënia maks. | Volatiliteti | Sharpe |
+|---|---|---|---|---|---|
+| **Rekomanduesi** | **+69.7%** | **+11.7%** | **−41.7%** | 44% | 0.45 |
+| Blej & mbaj BTC | +86.2% | +13.9% | −65.0% | 52% | 0.51 |
+| Top 6 sipas vlerësimit, pa regjim, pa korrelacion | −65.2% | −19.9% | −81.6% | 68% | 0.01 |
+| Të 30 coin-at me peshë të barabartë | −58.5% | −16.8% | −76.7% | 79% | 0.11 |
+
+- **Mesatarisht** investohej 50% e kapitalit, në 3.6 coin.
+- **Regjimet:** risk-on 17, neutral 19, risk-off 22 periudha.
+- **Kundrejt BTC:** rekomanduesi e mundi BTC-në në 43% të periudhave.
+
+**Interpretimi i ndershëm:**
+
+- **Në këtë periudhë, mbajtja e BTC fitoi më shumë.** Rekomanduesi fitoi më pak, por me rënie maksimale
+  shumë më të vogël (−42% kundrejt −65%).
+- **Blerja e altcoin-ave pa filtër ishte katastrofike.** Pothuajse e gjithë vlera e rekomanduesit vjen nga
+  filtri i regjimit (cash në tregje të këqija) dhe nga diversifikimi.
+- **Përdorimi i parë i vlerësimit vetëm**, pa këto rregulla, humbi 65%.
+- **Kufiri i volatilitetit (200%)** u shtua pasi pashë backtest-in e parë: +49.9% pa të, +69.7% me të.
+  Është një rregull rreziku i arsyeshëm a priori, por rezultati me të është pak optimist.
+- **Kufizimet e seksionit 3 vlejnë edhe këtu:** survivorship bias dhe 2022–2026, një periudhë e dominuar nga BTC.
+
+## 5. Rregull për ndryshimet
+
+Çdo ndryshim në metrika, kurba, pesha, pragje ose rregullat e rekomanduesit kërkon tri hapa:
 
 1. Ekzekutoni `pnpm validate:rating`.
 2. Commit-oni `calibration.json` të ri.

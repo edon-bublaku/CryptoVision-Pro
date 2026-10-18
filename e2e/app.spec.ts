@@ -154,3 +154,25 @@ test("CV Rating: ranked table with weighted pillars, presets and the per-coin in
   await expect(page.getByText("Renditja e EMA-ve", { exact: true }).first()).toBeVisible();
   await expect(page.getByText(/Peshat brenda shtyllës/)).toBeVisible();
 });
+
+test("recommendations: regime, model portfolio with plans, exclusions and historical replay", async ({ page }) => {
+  await acceptDisclaimer(page);
+  await page.goto("/recommendations");
+  await expect(page.getByRole("heading", { name: "Rekomandimet: portofoli model" })).toBeVisible();
+  await expect(page.getByText("Regjimi i tregut")).toBeVisible({ timeout: 90_000 });
+  await expect(page.getByText("Ndarja e kapitalit")).toBeVisible();
+  await expect(page.getByText("Cash (USDT)")).toBeVisible();
+  await expect(page.getByText("Pse jo coin-at e tjerë")).toBeVisible();
+  await expect(page.getByText("Si do të kishte performuar historikisht")).toBeVisible();
+  await expect(page.getByRole("cell", { name: "Blej & mbaj BTC" })).toBeVisible();
+  // Picks (if any today) can be sent to paper trading in one click.
+  const toPaper = page.getByRole("button", { name: "Vendose portofolin si urdhra paper" });
+  if (await toPaper.isVisible()) {
+    await toPaper.click();
+    const orders = await page.evaluate(() => {
+      const s = JSON.parse(localStorage.getItem("cv.portfolio")!).state;
+      return s.orders.length + s.positions.length;
+    });
+    expect(orders).toBeGreaterThan(0);
+  }
+});

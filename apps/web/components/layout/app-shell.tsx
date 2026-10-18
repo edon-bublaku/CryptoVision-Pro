@@ -17,6 +17,7 @@ import {
   LogOut,
   Moon,
   Gauge,
+  Sparkles,
   Orbit,
   Radar,
   Search,
@@ -47,6 +48,7 @@ import { CoinIcon, Pct } from "../ui/viz";
 const NAV = [
   { href: "/", key: "nav.dashboard", icon: LayoutDashboard },
   { href: "/chart", key: "nav.chart", icon: CandlestickChart },
+  { href: "/recommendations", key: "nav.recommendations", icon: Sparkles },
   { href: "/rating", key: "nav.rating", icon: Gauge },
   { href: "/signals", key: "nav.signals", icon: Zap },
   { href: "/screener", key: "nav.screener", icon: Radar },
@@ -57,7 +59,7 @@ const NAV = [
   { href: "/settings", key: "nav.settings", icon: Settings },
 ] as const;
 
-const MOBILE_NAV = ["/", "/chart", "/rating", "/signals", "/portfolio"];
+const MOBILE_NAV = ["/", "/recommendations", "/chart", "/rating", "/portfolio"];
 /** Full-bleed pages render without the app chrome. */
 const BARE = ["/welcome", "/login", "/register"];
 

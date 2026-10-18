@@ -124,6 +124,13 @@ describe("investment plan", () => {
       const c = coin[coin.length - 1]!.close;
       expect(plan.side).toBe("LONG");
       expect(plan.entries.reduce((s, e) => s + e.sizePct, 0)).toBe(100);
+      const limits = plan.entries.filter((e) => e.kind === "limit");
+      for (let k = 1; k < limits.length; k++) {
+        expect(limits[k - 1]!.price - limits[k]!.price).toBeGreaterThanOrEqual(0.75 * plan.atr - 1e-9);
+        expect(limits[k - 1]!.price - limits[k]!.price).toBeLessThanOrEqual(Math.min(3 * plan.atr, 0.1 * limits[k - 1]!.price) + 1e-9);
+      }
+      expect(c - limits[0]!.price).toBeLessThanOrEqual(Math.min(3 * plan.atr, 0.1 * c) + 1e-9);
+      expect(plan.stopLoss).toBeGreaterThanOrEqual(Math.min(...plan.entries.map((e) => e.price)) * 0.85 - 1e-9);
       for (const e of plan.entries) {
         expect(e.price).toBeLessThanOrEqual(c);
         expect(plan.stopLoss).toBeLessThan(e.price);
@@ -131,6 +138,7 @@ describe("investment plan", () => {
       expect(plan.stopLoss).toBeGreaterThan(0);
       for (let k = 0; k < plan.targets.length; k++) {
         expect(plan.targets[k]!.price).toBeGreaterThan(plan.avgEntry);
+        expect(plan.targets[k]!.price).toBeGreaterThan(c);
         if (k) expect(plan.targets[k]!.price).toBeGreaterThan(plan.targets[k - 1]!.price);
         expect(plan.targets[k]!.rr).toBeGreaterThanOrEqual(1 - 1e-9);
       }

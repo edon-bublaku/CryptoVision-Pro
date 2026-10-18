@@ -1,18 +1,14 @@
 "use client";
 
-import type { Candle } from "@cv/core";
 import { baseAsset, formatPrice, mean } from "@cv/core";
-import { closedOnly, getKlines, universe } from "@cv/exchange";
-import { buildRatingContext, calibration, PILLAR_IDS, rateAt, stanceOf, WEIGHT_PRESETS, type PillarId, type PillarWeights, type PresetId, type Rating, type RatingContext, type Verdict } from "@cv/rating";
-import { useQueries } from "@tanstack/react-query";
+import { calibration, PILLAR_IDS, rateAt, stanceOf, WEIGHT_PRESETS, type PillarId, type PillarWeights, type PresetId, type Rating, type Verdict } from "@cv/rating";
 import { ArrowDown, ArrowUp, Gauge as GaugeIcon, Loader2, SlidersHorizontal } from "lucide-react";
 import Link from "next/link";
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { scoreColor, VERDICT_TONE } from "@/components/rating/rating-view";
 import { Badge, Button, Card, CardHeader, Empty, PageHeader, Segmented, Select, Skeleton, Stat } from "@/components/ui/primitives";
 import { CoinIcon, Pct } from "@/components/ui/viz";
-import { useTickers } from "@/lib/data/hooks";
-import { BENCH, RATING_BARS, useFearGreedHistory } from "@/lib/data/rating";
+import { useUniverseContexts } from "@/lib/data/rating";
 import { useT, type TKey } from "@/lib/i18n";
 import { activeRatingWeights, useSettings } from "@/lib/store/settings";
 import { cn } from "@/lib/utils";
@@ -34,42 +30,7 @@ export default function RatingPage() {
   const [filter, setFilter] = useState<Verdict | "all">("all");
   const [sort, setSort] = useState<{ key: "score" | PillarId | "ret30"; dir: 1 | -1 }>({ key: "score", dir: -1 });
   const [editing, setEditing] = useState(false);
-  const { data: tickers } = useTickers();
-  const fg = useFearGreedHistory();
-
-  const symbols = useMemo(() => {
-    if (!tickers) return [];
-    const top = universe(tickers, size).map((x) => x.symbol);
-    return top.includes(BENCH) ? top : [BENCH, ...top.slice(0, size - 1)];
-  }, [tickers, size]);
-
-  const queries = useQueries({
-    queries: symbols.map((sym) => ({
-      queryKey: ["daily", sym, RATING_BARS],
-      queryFn: async ({ signal }: { signal: AbortSignal }): Promise<Candle[]> => closedOnly(await getKlines(sym, "1d", RATING_BARS, undefined, signal)),
-      staleTime: 15 * 60_000,
-    })),
-  });
-  const loaded = queries.filter((q) => q.data).length;
-
-  // Contexts are cached per coin and data version, so changing weights only re-scores.
-  const ctxCache = useRef(new Map<string, { at: number; fg: number; ctx: RatingContext }>());
-  const bench = queries[symbols.indexOf(BENCH)]?.data;
-  const contexts = useMemo(() => {
-    const out: { symbol: string; ctx: RatingContext }[] = [];
-    if (!bench) return out;
-    symbols.forEach((sym, k) => {
-      const q = queries[k];
-      if (!q?.data) return;
-      const hit = ctxCache.current.get(sym);
-      if (hit && hit.at === q.dataUpdatedAt && hit.fg === fg.dataUpdatedAt) return out.push({ symbol: sym, ctx: hit.ctx });
-      const ctx = buildRatingContext({ candles: q.data, bench, fearGreed: fg.data ?? [], isBench: sym === BENCH });
-      ctxCache.current.set(sym, { at: q.dataUpdatedAt, fg: fg.dataUpdatedAt, ctx });
-      out.push({ symbol: sym, ctx });
-    });
-    return out;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [queries.map((q) => q.dataUpdatedAt).join(","), symbols.join(","), fg.dataUpdatedAt, bench]);
+  const { symbols, contexts, loaded } = useUniverseContexts(size);
 
   const rows = useMemo<Row[]>(
     () =>

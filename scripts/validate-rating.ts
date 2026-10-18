@@ -11,7 +11,7 @@ import { writeFileSync } from "node:fs";
 import type { Candle } from "@cv/core";
 import { mean } from "@cv/core";
 import { getFearGreed } from "@cv/exchange";
-import { buildRatingContext, MIN_BARS, WEIGHT_PRESETS, PILLAR_IDS, rateAt, verdictOf, type PillarId, type PillarWeights, type Verdict } from "@cv/rating";
+import { buildRatingContext, MIN_BARS, recommend, WEIGHT_PRESETS, type RatingContext, PILLAR_IDS, rateAt, verdictOf, type PillarId, type PillarWeights, type Verdict } from "@cv/rating";
 
 const COINS = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "ADAUSDT", "DOGEUSDT", "TRXUSDT", "LINKUSDT", "AVAXUSDT", "DOTUSDT", "LTCUSDT", "BCHUSDT", "ATOMUSDT", "ETCUSDT", "XLMUSDT", "NEARUSDT", "FILUSDT", "UNIUSDT", "AAVEUSDT", "ALGOUSDT", "VETUSDT", "HBARUSDT", "ICPUSDT", "SANDUSDT", "MANAUSDT", "AXSUSDT", "EGLDUSDT", "THETAUSDT", "XTZUSDT"];
 const BARS = 2000;
@@ -83,6 +83,7 @@ const fg = await getFearGreed(0);
 const btc = await fetchDaily("BTCUSDT", BARS);
 const btcByTime = new Map(btc.map((c, i) => [c.time, i]));
 const obs: Obs[] = [];
+const universe: { symbol: string; ctx: RatingContext; byTime: Map<number, number> }[] = [];
 
 for (const symbol of COINS) {
   const candles = symbol === "BTCUSDT" ? btc : await fetchDaily(symbol, BARS);
@@ -91,6 +92,7 @@ for (const symbol of COINS) {
     continue;
   }
   const ctx = buildRatingContext({ candles, bench: btc, fearGreed: fg, isBench: symbol === "BTCUSDT" });
+  universe.push({ symbol, ctx, byTime: new Map(candles.map((c, k) => [c.time, k])) });
   // Align sampling days across coins so the cross-section compares the same dates.
   for (let i = MIN_BARS; i + HORIZON < candles.length; i++) {
     const t = candles[i]!.time;
@@ -197,6 +199,72 @@ const deciles = Array.from({ length: 10 }, (_, d) => {
   return { decile: d + 1, minScore: +slice[0]!.score.toFixed(1), maxScore: +slice[slice.length - 1]!.score.toFixed(1), ...bucketStats(slice) };
 });
 
+// ── Model portfolio replay: the recommender every 30 days, held for 30 days ──────────────────
+const FEE = 0.001;
+const periods: { time: number; strategy: number; topN: number; btc: number; equal: number; exposure: number; picks: number; regime: string }[] = [];
+let prevW = new Map<string, number>();
+for (const d of dates) {
+  const live = universe
+    .map((u) => ({ ...u, i: u.byTime.get(d) }))
+    .filter((u): u is typeof u & { i: number } => u.i !== undefined && u.i >= MIN_BARS && u.ctx.candles[u.i + HORIZON] !== undefined);
+  const bench = live.find((u) => u.symbol === "BTCUSDT");
+  if (live.length < 8 || !bench) continue;
+  const fwdOf = (u: (typeof live)[number]) => u.ctx.candles[u.i + HORIZON]!.close / u.ctx.candles[u.i]!.close - 1;
+  const rec = recommend(live.map((u) => ({ symbol: u.symbol, ctx: u.ctx, i: u.i })), { symbol: bench.symbol, ctx: bench.ctx, i: bench.i });
+  const w = new Map(rec.picks.map((p) => [p.symbol, p.weight]));
+  const turnover = [...new Set([...w.keys(), ...prevW.keys()])].reduce((a, k) => a + Math.abs((w.get(k) ?? 0) - (prevW.get(k) ?? 0)), 0);
+  prevW = w;
+  const gross = live.reduce((a, u) => a + (w.get(u.symbol) ?? 0) * fwdOf(u), 0);
+  // Ablation: the 6 best-rated coins (≥ 58), equal weight, always fully invested.
+  const top = live
+    .map((u) => ({ u, r: obs.find((o) => o.symbol === u.symbol && o.time === d)?.score ?? -1 }))
+    .filter((x) => x.r >= 58)
+    .sort((a, b) => b.r - a.r)
+    .slice(0, 6);
+  periods.push({
+    time: d,
+    strategy: gross - turnover * FEE,
+    topN: top.length ? mean(top.map((x) => fwdOf(x.u))) - 2 * FEE : 0,
+    btc: fwdOf(bench),
+    equal: mean(live.map(fwdOf)),
+    exposure: 1 - rec.cash,
+    picks: rec.picks.length,
+    regime: rec.market.regime,
+  });
+}
+
+function curveStats(rets: number[]) {
+  let eq = 1;
+  let peak = 1;
+  let maxDd = 0;
+  const curve = rets.map((r) => {
+    eq *= 1 + r;
+    peak = Math.max(peak, eq);
+    maxDd = Math.min(maxDd, eq / peak - 1);
+    return +eq.toFixed(4);
+  });
+  const years = (rets.length * HORIZON) / 365;
+  const m = mean(rets);
+  const sd = Math.sqrt(mean(rets.map((r) => (r - m) ** 2)));
+  return { totalReturn: +(eq - 1).toFixed(4), cagr: +(eq ** (1 / years) - 1).toFixed(4), maxDrawdown: +maxDd.toFixed(4), annualVol: +(sd * Math.sqrt(365 / HORIZON)).toFixed(4), sharpe: +(sd ? (m / sd) * Math.sqrt(365 / HORIZON) : 0).toFixed(2), curve };
+}
+const S = curveStats(periods.map((p) => p.strategy));
+const portfolio = {
+  periods: periods.length,
+  from: new Date(periods[0]!.time * 1000).toISOString().slice(0, 10),
+  to: new Date((periods[periods.length - 1]!.time + HORIZON * 86_400) * 1000).toISOString().slice(0, 10),
+  feePerSide: FEE,
+  avgExposure: +mean(periods.map((p) => p.exposure)).toFixed(3),
+  avgPicks: +mean(periods.map((p) => p.picks)).toFixed(2),
+  regimes: Object.fromEntries(["risk_on", "neutral", "risk_off"].map((r) => [r, periods.filter((p) => p.regime === r).length])),
+  beatBtcShare: +(periods.filter((p) => p.strategy > p.btc).length / periods.length).toFixed(3),
+  strategy: S,
+  topN: curveStats(periods.map((p) => p.topN)),
+  btc: curveStats(periods.map((p) => p.btc)),
+  equal: curveStats(periods.map((p) => p.equal)),
+  times: periods.map((p) => p.time),
+};
+
 const times = obs.map((o) => o.time);
 const calibration = {
   generatedAt: new Date().toISOString().slice(0, 10),
@@ -213,6 +281,7 @@ const calibration = {
   quintileSpread: quintileSpread(obs, def),
   pillarIc: Object.fromEntries(CROSS.map((p) => [p, +icOf(obs, (o) => o.pillars[p]).mean.toFixed(4)])),
   sentimentTimeSeriesIc: +sentimentTs.toFixed(4),
+  portfolio,
   calibrated: {
     weights: calibratedWeights,
     fittedOn: `${new Date(Math.min(...times) * 1000).toISOString().slice(0, 10)} → ${new Date(splitAt * 1000).toISOString().slice(0, 10)}`,
@@ -237,3 +306,10 @@ console.info(`Top − bottom quintile: ${pct(calibration.quintileSpread.mean)} p
 console.info("Pillar IC (cross-section):", calibration.pillarIc, "· sentiment time-series IC (BTC):", calibration.sentimentTimeSeriesIc);
 console.info("Calibrated weights (fit on 1st half):", calibratedWeights);
 console.info("Out-of-sample 2nd half — IC default", calibration.calibrated.outOfSample.defaultIc, "calibrated", calibration.calibrated.outOfSample.calibratedIc, "· spread default", pct(calibration.calibrated.outOfSample.defaultSpread), "calibrated", pct(calibration.calibrated.outOfSample.calibratedSpread));
+const row = (n: string, x: ReturnType<typeof curveStats>) => console.info(`${n.padEnd(22)} total ${pct(x.totalReturn).padStart(9)}  CAGR ${pct(x.cagr).padStart(8)}  max DD ${pct(x.maxDrawdown).padStart(8)}  vol ${pct(x.annualVol).padStart(8)}  Sharpe ${x.sharpe}`);
+console.info(`\nModel portfolio, ${portfolio.periods} × ${HORIZON}d, ${portfolio.from} → ${portfolio.to}, avg exposure ${(portfolio.avgExposure * 100).toFixed(0)}%, avg ${portfolio.avgPicks} coins, regimes`, portfolio.regimes);
+row("Recommender", portfolio.strategy);
+row("Top 6 by rating (EW)", portfolio.topN);
+row("BTC buy & hold", portfolio.btc);
+row("Equal weight all", portfolio.equal);
+console.info(`Recommender beat BTC in ${(portfolio.beatBtcShare * 100).toFixed(0)}% of periods`);

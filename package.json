@@ -17,7 +17,8 @@
     "test:e2e": "playwright test",
     "worker": "pnpm --filter @cv/worker start",
     "validate:rating": "tsx scripts/validate-rating.ts",
-    "dev:clean": "rm -rf apps/web/.next/dev && pnpm dev"
+    "dev:clean": "rm -rf apps/web/.next/dev && pnpm dev",
+    "recommend": "tsx scripts/recommend-now.ts"
   },
   "devDependencies": {
     "@cv/server": "workspace:*",
