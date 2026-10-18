@@ -22,6 +22,8 @@ import { Badge, Button, Segmented, Skeleton } from "../ui/primitives";
 import { toast } from "../ui/toast";
 import { ActionBadge, Gauge } from "../ui/viz";
 import { AiExplain, DerivativesPanel } from "./report-extras";
+import { HistoricalEvidence, InvestmentPlanView, RatingSummary } from "../rating/rating-view";
+import { useRating } from "@/lib/data/rating";
 
 const MTF: Timeframe[] = ["15m", "1h", "4h", "1d", "1w"];
 
@@ -63,6 +65,33 @@ function Section({ title, children, right }: { title: string; children: React.Re
   );
 }
 
+/** Investment view on daily data: CV Rating, its evidence and the plan. Independent of the chart timeframe. */
+function RatingSections({ symbol }: { symbol: string }) {
+  const t = useT();
+  const { rating, plan, isLoading } = useRating(symbol);
+  if (isLoading)
+    return (
+      <div className="space-y-2 border-b border-line p-3">
+        <Skeleton className="h-28" />
+        <Skeleton className="h-24" />
+      </div>
+    );
+  if (!rating || !plan) return <p className="border-b border-line p-3 text-xs text-faint">{t("rating.notEnough")}</p>;
+  return (
+    <>
+      <Section title={t("rating.title")} right={<span className="text-[10px] text-faint">1D · {t("rating.metricsCount", { n: rating.pillars.reduce((s, p) => s + p.metrics.length, 0) })}</span>}>
+        <RatingSummary rating={rating} />
+        <div className="mt-3">
+          <HistoricalEvidence verdict={rating.verdict} />
+        </div>
+      </Section>
+      <Section title={t("plan.investTitle")}>
+        <InvestmentPlanView plan={plan} rating={rating} symbol={symbol} />
+      </Section>
+    </>
+  );
+}
+
 function Report({ symbol, timeframe, data }: { symbol: string; timeframe: Timeframe; data: { analysis: FullAnalysis | null; candles: Candle[] } }) {
   const t = useT();
   const lang = useSettings((s) => s.lang);
@@ -96,6 +125,7 @@ function Report({ symbol, timeframe, data }: { symbol: string; timeframe: Timefr
 
   return (
     <div>
+      <RatingSections symbol={symbol} />
       <Section title={t("chart.verdict")}>
         <div className="flex items-center gap-3">
           <Gauge value={signal.score} size={110} />

@@ -1,0 +1,282 @@
+{
+  "generatedAt": "2026-10-18",
+  "from": "2021-12-29",
+  "to": "2026-09-04",
+  "splitAt": "2024-05-17",
+  "coins": 30,
+  "observations": 1740,
+  "horizonDays": 30,
+  "baseline": {
+    "meanFwd": 0.0073,
+    "positive": 0.444,
+    "meanMaxDd": -0.1462
+  },
+  "byVerdict": [
+    {
+      "verdict": "STRONG_ACCUMULATE",
+      "n": 43,
+      "meanFwd": -0.0338,
+      "medianFwd": -0.0678,
+      "positive": 0.372,
+      "meanExcess": -0.054,
+      "beatBtc": 0.209,
+      "meanMaxDd": -0.145
+    },
+    {
+      "verdict": "ACCUMULATE",
+      "n": 257,
+      "meanFwd": 0.0519,
+      "medianFwd": 0.0097,
+      "positive": 0.514,
+      "meanExcess": 0.0097,
+      "beatBtc": 0.354,
+      "meanMaxDd": -0.1301
+    },
+    {
+      "verdict": "HOLD",
+      "n": 524,
+      "meanFwd": -0.004,
+      "medianFwd": -0.0416,
+      "positive": 0.429,
+      "meanExcess": -0.0134,
+      "beatBtc": 0.342,
+      "meanMaxDd": -0.1529
+    },
+    {
+      "verdict": "REDUCE",
+      "n": 695,
+      "meanFwd": -0.0071,
+      "medianFwd": -0.0328,
+      "positive": 0.417,
+      "meanExcess": -0.033,
+      "beatBtc": 0.295,
+      "meanMaxDd": -0.1462
+    },
+    {
+      "verdict": "AVOID",
+      "n": 221,
+      "meanFwd": 0.0357,
+      "medianFwd": -0.0034,
+      "positive": 0.493,
+      "meanExcess": 0.0219,
+      "beatBtc": 0.475,
+      "meanMaxDd": -0.1494
+    }
+  ],
+  "deciles": [
+    {
+      "decile": 1,
+      "minScore": 20.3,
+      "maxScore": 28.8,
+      "n": 174,
+      "meanFwd": 0.0434,
+      "medianFwd": 0.0016,
+      "positive": 0.5,
+      "meanExcess": 0.0354,
+      "beatBtc": 0.5,
+      "meanMaxDd": -0.1516
+    },
+    {
+      "decile": 2,
+      "minScore": 28.9,
+      "maxScore": 32.7,
+      "n": 174,
+      "meanFwd": -0.0112,
+      "medianFwd": -0.0366,
+      "positive": 0.414,
+      "meanExcess": -0.0339,
+      "beatBtc": 0.328,
+      "meanMaxDd": -0.1496
+    },
+    {
+      "decile": 3,
+      "minScore": 32.8,
+      "maxScore": 36.3,
+      "n": 174,
+      "meanFwd": -0.0095,
+      "medianFwd": -0.0317,
+      "positive": 0.431,
+      "meanExcess": -0.0301,
+      "beatBtc": 0.333,
+      "meanMaxDd": -0.1462
+    },
+    {
+      "decile": 4,
+      "minScore": 36.3,
+      "maxScore": 39.9,
+      "n": 174,
+      "meanFwd": 0.0095,
+      "medianFwd": -0.0207,
+      "positive": 0.437,
+      "meanExcess": -0.031,
+      "beatBtc": 0.293,
+      "meanMaxDd": -0.1409
+    },
+    {
+      "decile": 5,
+      "minScore": 40,
+      "maxScore": 44,
+      "n": 174,
+      "meanFwd": -0.0277,
+      "medianFwd": -0.0439,
+      "positive": 0.397,
+      "meanExcess": -0.0562,
+      "beatBtc": 0.224,
+      "meanMaxDd": -0.1508
+    },
+    {
+      "decile": 6,
+      "minScore": 44,
+      "maxScore": 48.1,
+      "n": 174,
+      "meanFwd": 0.0046,
+      "medianFwd": -0.0256,
+      "positive": 0.448,
+      "meanExcess": 0.0027,
+      "beatBtc": 0.368,
+      "meanMaxDd": -0.1487
+    },
+    {
+      "decile": 7,
+      "minScore": 48.2,
+      "maxScore": 52.6,
+      "n": 174,
+      "meanFwd": 0.0059,
+      "medianFwd": -0.0723,
+      "positive": 0.397,
+      "meanExcess": 0.0088,
+      "beatBtc": 0.374,
+      "meanMaxDd": -0.1626
+    },
+    {
+      "decile": 8,
+      "minScore": 52.6,
+      "maxScore": 58.5,
+      "n": 174,
+      "meanFwd": -0.001,
+      "medianFwd": -0.0313,
+      "positive": 0.437,
+      "meanExcess": -0.0204,
+      "beatBtc": 0.333,
+      "meanMaxDd": -0.1467
+    },
+    {
+      "decile": 9,
+      "minScore": 58.5,
+      "maxScore": 66,
+      "n": 174,
+      "meanFwd": 0.0211,
+      "medianFwd": -0.0095,
+      "positive": 0.483,
+      "meanExcess": -0.022,
+      "beatBtc": 0.27,
+      "meanMaxDd": -0.1314
+    },
+    {
+      "decile": 10,
+      "minScore": 66,
+      "maxScore": 84.4,
+      "n": 174,
+      "meanFwd": 0.0382,
+      "medianFwd": -0.0041,
+      "positive": 0.494,
+      "meanExcess": 0.0034,
+      "beatBtc": 0.362,
+      "meanMaxDd": -0.134
+    }
+  ],
+  "ic": {
+    "mean": 0.0754,
+    "tStat": 2.05,
+    "dates": 58,
+    "positiveShare": 0.638,
+    "firstHalf": 0.0549,
+    "secondHalf": 0.0959
+  },
+  "quintileSpread": {
+    "mean": 0.008,
+    "positiveShare": 0.603,
+    "dates": 58
+  },
+  "pillarIc": {
+    "trend": 0.0455,
+    "momentum": 0.027,
+    "relative": 0.0193,
+    "volume": 0.0098,
+    "risk": 0.1418,
+    "structure": 0.047,
+    "liquidity": 0.1416
+  },
+  "sentimentTimeSeriesIc": -0.0795,
+  "calibrated": {
+    "weights": {
+      "trend": 0,
+      "momentum": 13,
+      "relative": 9,
+      "volume": 9,
+      "risk": 35,
+      "structure": 12,
+      "liquidity": 22,
+      "sentiment": 0
+    },
+    "fittedOn": "2021-12-29 → 2024-05-17",
+    "outOfSample": {
+      "defaultIc": 0.0959,
+      "calibratedIc": 0.1836,
+      "defaultSpread": 0.01,
+      "calibratedSpread": 0.0304,
+      "byVerdict": [
+        {
+          "verdict": "STRONG_ACCUMULATE",
+          "n": 25,
+          "meanFwd": 0.0273,
+          "medianFwd": 0.015,
+          "positive": 0.6,
+          "meanExcess": 0.0293,
+          "beatBtc": 0.28,
+          "meanMaxDd": -0.0804
+        },
+        {
+          "verdict": "ACCUMULATE",
+          "n": 161,
+          "meanFwd": 0.038,
+          "medianFwd": -0.007,
+          "positive": 0.491,
+          "meanExcess": 0.0393,
+          "beatBtc": 0.398,
+          "meanMaxDd": -0.1327
+        },
+        {
+          "verdict": "HOLD",
+          "n": 346,
+          "meanFwd": 0.0295,
+          "medianFwd": -0.0243,
+          "positive": 0.471,
+          "meanExcess": 0.0071,
+          "beatBtc": 0.355,
+          "meanMaxDd": -0.1608
+        },
+        {
+          "verdict": "REDUCE",
+          "n": 297,
+          "meanFwd": -0.0191,
+          "medianFwd": -0.022,
+          "positive": 0.451,
+          "meanExcess": -0.0411,
+          "beatBtc": 0.29,
+          "meanMaxDd": -0.1581
+        },
+        {
+          "verdict": "AVOID",
+          "n": 41,
+          "meanFwd": -0.0193,
+          "medianFwd": -0.0556,
+          "positive": 0.317,
+          "meanExcess": -0.0444,
+          "beatBtc": 0.22,
+          "meanMaxDd": -0.155
+        }
+      ]
+    }
+  }
+}

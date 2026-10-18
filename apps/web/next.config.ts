@@ -33,7 +33,7 @@ const csp = [
 ].join("; ");
 
 const nextConfig: NextConfig = {
-  transpilePackages: ["@cv/core", "@cv/analytics", "@cv/indicators", "@cv/signals", "@cv/risk", "@cv/backtest", "@cv/exchange", "@cv/engine", "@cv/db", "@cv/server", "@cv/worker"],
+  transpilePackages: ["@cv/core", "@cv/analytics", "@cv/rating", "@cv/indicators", "@cv/signals", "@cv/risk", "@cv/backtest", "@cv/exchange", "@cv/engine", "@cv/db", "@cv/server", "@cv/worker"],
   serverExternalPackages: ["pg", "@electric-sql/pglite", "ioredis", "bullmq", "web-push", "pino", "qrcode"],
   reactStrictMode: true,
   poweredByHeader: false,

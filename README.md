@@ -2,6 +2,7 @@
 
 Platformë profesionale për analizë të kriptovalutave. Përfshin:
 
+- **CV Rating 0–100 për çdo coin:** 8 shtylla dhe 25 metrika, secila me peshën e vet. Përfshin planin e investimit: kur të blesh, çfarë pozicioni, kur të shesësh. Validim historik i ndershëm.
 - Sinjale me konfluencë shumë-faktoriale.
 - Plane tregtie me menaxhim rreziku.
 - Backtest bar-pas-bari.
@@ -20,6 +21,8 @@ Platformë profesionale për analizë të kriptovalutave. Përfshin:
 
 | Faqja | Funksionet |
 |---|---|
+| **Vlerësimi (CV Rating)** | Renditja e top 20–50 coin-ave me skor 0–100, notë A+…F dhe vendim (Akumulim i fortë → Shmang). Shfaq 8 shtyllat me ngjyra: trend, momentum, forca ndaj BTC, volum, rrezik, strukturë, likuiditet, sentiment. Peshat: të balancuara, të kalibruara (walk-forward), trend, momentum, konservative ose të personalizuara me rrëshqitës ([metodologjia dhe rezultatet](docs/strategies/rating.md)) |
+| ↳ Plani i investimit | Për çdo coin te raporti: qëndrimi, pozicioni (spot/futures, leverage, sasia nga % e rrezikut), shkallë me 3 hyrje me arsyen e çdo niveli, breakout alternativ, stop-loss, TP1–3 me R:R, rregullat e shitjes (trailing, breakeven, rënia e vlerësimit, EMA50, time stop). Kthehet në urdhra paper ose alerte me një klik, me statistikat historike të vendimit |
 | **Paneli** | BTC/ETH live, kapitalizimi total, dominanca, Fear & Greed, gjerësia e tregut, sinjalet kryesore, fituesit/humbësit, heatmap, sektorët, lista ime |
 | **Grafiku** | Lightweight Charts v5 me të dhëna live (WebSocket). Lloje: candles / Heikin-Ashi / bars / line / area. Shkallë log. Layout 1/2/4 grafikë. Replay bar-pas-bari. Screenshot. Historiku ngarkohet automatikisht kur lëviz majtas |
 | ↳ Indikatorë (25) | EMA 20/50/200, SMA, Hull, VWAP ±σ, Bollinger, Keltner, Donchian, SuperTrend, PSAR, Ichimoku, Volume, RSI, MACD, Stoch RSI, ADX/DMI, ATR, OBV, CVD, CMF, MFI, CCI, Williams %R, TSI |
@@ -82,15 +85,17 @@ përdorni `DATABASE_URL` me PostgreSQL dhe `REDIS_URL`.
 
 | Komanda | Çfarë bën |
 |---|---|
-| `pnpm test` | 111 teste: indikatorët kundrejt `technicalindicators`, motori, rreziku, paper trading, analitika (korrelacion, beta, RRG), strategjitë custom, backtest-i, TOTP sipas RFC 6238, kriptimi, alertet e worker-it dhe repo-t e DB-së mbi PGlite |
+| `pnpm test` | 125 teste: indikatorët kundrejt `technicalindicators`, motori, CV Rating dhe plani (pa look-ahead), rreziku, paper trading, analitika (korrelacion, beta, RRG), strategjitë custom, backtest-i, TOTP sipas RFC 6238, kriptimi, alertet e worker-it dhe repo-t e DB-së mbi PGlite |
 | `pnpm test:integration` | Të njëjtat teste, me repo-t e DB-së kundër PostgreSQL (`TEST_DATABASE_URL`) |
 | `pnpm typecheck` | TypeScript strict në të gjitha paketat |
 | `pnpm build` / `pnpm start` | Build dhe server prodhimi (Next.js 16) |
-| `pnpm test:e2e` | 16 teste Playwright: UI, ndërtuesi i strategjive, tregu, paper trading, API (regjistrim → 2FA → sesione → sinkronizim), sinkronizim vizatimesh mes dy pajisjeve |
+| `pnpm test:e2e` | 17 teste Playwright: UI, CV Rating + plani, ndërtuesi i strategjive, tregu, paper trading, API (regjistrim → 2FA → sesione → sinkronizim), sinkronizim vizatimesh mes dy pajisjeve |
 | `pnpm db:migrate` / `pnpm db:generate` | Zbato / gjenero migrimet |
 | `pnpm worker` | Worker në proces të veçantë (vetëm me `WORKER=external` dhe PostgreSQL) |
 | `pnpm backtest --symbol ETHUSDT --tf 4h --bars 3000 [--strategy breakout_volume]` | Backtest nga terminali |
 | `pnpm validate:oos` | Validim jashtë mostrës në 12 coin × 3 timeframe |
+| `pnpm validate:rating` | Validim historik i CV Rating (30 coin, 2021→sot) dhe kalibrim walk-forward → `calibration.json` |
+| `pnpm dev:clean` | Pastron cache-in e Turbopack dhe nis `pnpm dev` (nëse faqja rifreskohet pa pushim pas një ndërprerjeje) |
 
 CI (`.github/workflows/ci.yml`) ekzekuton typecheck, testet me PostgreSQL dhe me PGlite, migrimet,
 build-in dhe Playwright kundër serverit të prodhimit.
@@ -129,6 +134,7 @@ packages
   ├─ risk                 planet SL/TP, madhësia e pozicionit (decimal.js), Kelly, likuidimi, paper trading
   ├─ signals              konteksti, regjimi, 19 faktorë (përfshirë derivatet), 6 strategji + strategji custom
   ├─ analytics            korrelacion, beta, volatilitet, drawdown, rotacion relativ (RRG)
+  ├─ rating               CV Rating (8 shtylla, 25 metrika), plani i investimit, kalibrimi
   ├─ backtest             motor event-driven, metrika, walk-forward, Monte Carlo
   ├─ exchange             Binance REST/WS, CoinGecko, Fear & Greed, OKX derivate (browser + Node)
   ├─ engine               analiza e plotë + gate-i i backtest-it, i përbashkët për web dhe worker

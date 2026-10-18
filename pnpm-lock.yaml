@@ -14,6 +14,12 @@ importers:
       '@cv/core':
         specifier: workspace:*
         version: link:packages/core
+      '@cv/exchange':
+        specifier: workspace:*
+        version: link:packages/exchange
+      '@cv/rating':
+        specifier: workspace:*
+        version: link:packages/rating
       '@cv/signals':
         specifier: workspace:*
         version: link:packages/signals
@@ -66,6 +72,9 @@ importers:
       '@cv/indicators':
         specifier: workspace:*
         version: link:../../packages/indicators
+      '@cv/rating':
+        specifier: workspace:*
+        version: link:../../packages/rating
       '@cv/risk':
         specifier: workspace:*
         version: link:../../packages/risk
@@ -275,6 +284,24 @@ importers:
       '@cv/core':
         specifier: workspace:*
         version: link:../core
+
+  packages/rating:
+    dependencies:
+      '@cv/analytics':
+        specifier: workspace:*
+        version: link:../analytics
+      '@cv/core':
+        specifier: workspace:*
+        version: link:../core
+      '@cv/indicators':
+        specifier: workspace:*
+        version: link:../indicators
+      '@cv/signals':
+        specifier: workspace:*
+        version: link:../signals
+      decimal.js:
+        specifier: ^10.6.0
+        version: 10.6.0
 
   packages/risk:
     dependencies:

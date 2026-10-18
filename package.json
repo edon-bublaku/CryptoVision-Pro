@@ -15,7 +15,9 @@
     "db:generate": "pnpm --filter @cv/db generate",
     "test:integration": "TEST_DATABASE_URL=${TEST_DATABASE_URL:-postgres://cryptovision@localhost:5432/cryptovision_test} vitest run",
     "test:e2e": "playwright test",
-    "worker": "pnpm --filter @cv/worker start"
+    "worker": "pnpm --filter @cv/worker start",
+    "validate:rating": "tsx scripts/validate-rating.ts",
+    "dev:clean": "rm -rf apps/web/.next/dev && pnpm dev"
   },
   "devDependencies": {
     "@cv/server": "workspace:*",
@@ -30,6 +32,8 @@
   "dependencies": {
     "@cv/backtest": "workspace:*",
     "@cv/core": "workspace:*",
-    "@cv/signals": "workspace:*"
+    "@cv/signals": "workspace:*",
+    "@cv/rating": "workspace:*",
+    "@cv/exchange": "workspace:*"
   }
 }

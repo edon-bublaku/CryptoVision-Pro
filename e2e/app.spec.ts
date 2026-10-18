@@ -133,3 +133,24 @@ test("paper trading: orders validate, fill on live prices and exit at the stop",
   expect(closed.exitReason).toBe("SL");
   expect(closed.paper).toBe(true);
 });
+
+test("CV Rating: ranked table with weighted pillars, presets and the per-coin investment plan", async ({ page }) => {
+  await acceptDisclaimer(page);
+  await page.goto("/rating");
+  await expect(page.getByRole("heading", { name: "CV Rating · vlerësimi i coin-ave" })).toBeVisible();
+  const btcRow = page.getByRole("row").filter({ has: page.getByRole("link", { name: "BTC", exact: true }) });
+  await expect(btcRow).toBeVisible({ timeout: 90_000 });
+  // Changing the weighting re-scores without reloading data.
+  await page.getByLabel("Peshat").selectOption({ label: "Ndjekës trendi" });
+  await expect(page.getByText("Më shumë peshë te trendi")).toBeVisible();
+  await page.getByLabel("Peshat").selectOption({ label: "Të balancuara" });
+
+  await btcRow.getByRole("link", { name: "BTC", exact: true }).click();
+  await expect(page.getByText("CV Rating · vlerësimi i investimit")).toBeVisible({ timeout: 60_000 });
+  await expect(page.getByText("Plani i investimit")).toBeVisible();
+  await expect(page.getByText(/Rregullat e daljes|Për ata që e mbajnë/)).toBeVisible();
+  // Pillar drill-down shows the metrics and their weights.
+  await page.getByRole("button", { name: /^Trendi/ }).click();
+  await expect(page.getByText("Renditja e EMA-ve", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText(/Peshat brenda shtyllës/)).toBeVisible();
+});

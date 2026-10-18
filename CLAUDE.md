@@ -461,9 +461,9 @@ PostgreSQL dhe Redis mbeten opsionalë, për shkallëzim. `DATABASE_URL=off` jep
 | F2 | ✅ | Grafik live, lazy history, kërkim simboli (Ctrl+K), layout 1/2/4, replay, screenshot |
 | F3 | ✅ | 25 indikatorë në grafik. Testet krahasojnë me `technicalindicators` |
 | F4 | ✅ | Undo/redo, magnet, stile, alert nga vizatimi. Persistencë lokale + sinkronizim në DB për përdoruesit me llogari |
-| F5 | ✅ | Regjimi, 19 faktorë (përfshirë derivatet), 6 strategji, strategji custom pa kod ([ADR 0006](docs/decisions/0006-paper-trading-custom-strategies.md)), plane rreziku me decimal.js |
+| F5 | ✅ | Regjimi, 19 faktorë (përfshirë derivatet), 6 strategji, CV Rating 0–100 (8 shtylla, 25 metrika me pesha) + plani i investimit ([ADR 0007](docs/decisions/0007-cv-rating.md)), strategji custom pa kod ([ADR 0006](docs/decisions/0006-paper-trading-custom-strategies.md)), plane rreziku me decimal.js |
 | F6 | ✅ | Backtest event-driven (edhe për strategjitë custom), walk-forward, Monte Carlo, Backtest Lab, gate për coin ([ADR 0002](docs/decisions/0002-backtest-gate.md)) |
-| F7 | ✅ | Paneli, Sinjalet + track record, Raporti i coinit, Skaneri, Tregu (RRG, korrelacion, beta, volatilitet), `/welcome` |
+| F7 | ✅ | Paneli, Vlerësimi (`/rating`), Sinjalet + track record, Raporti i coinit (CV Rating + plani + sinjali i hyrjes), Skaneri, Tregu (RRG, korrelacion, beta, volatilitet), `/welcome` |
 | F8 | ✅ | Auth me 2FA ([ADR 0003](docs/decisions/0003-custom-auth.md)), portofoli + paper trading (LIMIT/STOP, SL/TP, likuidim), alertet, worker, njoftime: aplikacion, browser, Web Push, Telegram, email, SSE |
 | F9 | ✅ | 31 mjete vizatimi, derivate OKX, SMC, modele, shpjegim AI me Claude |
 | F10 | ◐ | i18n sq/en, temë e çelët, daltonizëm, PWA, CSP + headers, rate limit, audit log, pino, çelës kriptimi i gjeneruar. **Mungon:** OpenTelemetry/Sentry, ESLint |
@@ -474,6 +474,7 @@ PostgreSQL dhe Redis mbeten opsionalë, për shkallëzim. `DATABASE_URL=off` jep
 - `Drawing` te `apps/web/lib/chart/drawing-types.ts` (`schemaVersion`).
 - `Snapshot`, `ScanRow`, `TrackedSignal` te `packages/engine/src/types.ts`.
 - `CustomStrategyDef` (Zod) te `packages/signals/src/custom.ts`; `PaperOrder` te `packages/risk/src/paper.ts`.
+- `Rating`, `PillarWeights`, `InvestmentPlan` te `packages/rating/src`; metrikat, kurbat dhe pragjet janë pjesë e kontratës.
 - Skema e DB-së te `packages/db/src/schema.ts`. Çdo ndryshim kërkon `pnpm db:generate`, i cili gjeneron SQL-në
   dhe e përfshin te `migrations.gen.ts`. Skedari i gjeneruar commit-ohet bashkë me SQL-në.
 - Store-t e ruajtura `cv.*`, të versionuara. `chartUi` nuk sinkronizohet (specifik për pajisjen).
@@ -482,15 +483,21 @@ PostgreSQL dhe Redis mbeten opsionalë, për shkallëzim. `DATABASE_URL=off` jep
 **Komandat reale:**
 
 - `pnpm dev` (platforma e plotë), `pnpm build && pnpm start`
-- `pnpm test` (111 teste, përfshirë DB-në mbi PGlite), `pnpm typecheck`, `pnpm test:e2e` (16 teste)
+- `pnpm test` (125 teste, përfshirë DB-në mbi PGlite), `pnpm typecheck`, `pnpm test:e2e` (17 teste)
 - `pnpm db:generate`, `pnpm db:migrate`, `pnpm test:integration` (kundër PostgreSQL)
 - `pnpm worker` (vetëm me `WORKER=external` dhe PostgreSQL)
-- `pnpm backtest …`, `pnpm validate:oos`
+- `pnpm backtest …`, `pnpm validate:oos`, `pnpm validate:rating`
+- `pnpm dev:clean` (pastron cache-in e Turbopack kur faqja rifreskohet pa pushim)
 
 `pnpm db:seed` dhe `pnpm lint` nga §10–11 nuk ekzistojnë ende.
 
-**Rregull i shtuar:** çdo ndryshim në strategji ose faktorë duhet të ekzekutojë `pnpm validate:oos` dhe të
-përditësojë numrat te `docs/strategies/README.md`. Kjo vlen edhe kur numrat përkeqësohen.
+**Rregulla të shtuara:**
+
+- Çdo ndryshim në strategji ose faktorë duhet të ekzekutojë `pnpm validate:oos` dhe të përditësojë numrat te
+  `docs/strategies/README.md`.
+- Çdo ndryshim në metrikat, kurbat, peshat ose pragjet e CV Rating kërkon `pnpm validate:rating`,
+  `calibration.json` të ri dhe përditësimin e `docs/strategies/rating.md`.
+- Të dyja rregullat vlejnë edhe kur numrat përkeqësohen.
 
 ---
 

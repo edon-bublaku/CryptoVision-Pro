@@ -1,6 +1,7 @@
 "use client";
 
 import type { Timeframe } from "@cv/core";
+import { WEIGHT_PRESETS, type PillarWeights, type PresetId } from "@cv/rating";
 import { RISK_PROFILES, type RiskProfile } from "@cv/risk";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
@@ -34,6 +35,11 @@ export interface SettingsState {
   telegram: { token: string; chatId: string };
   disclaimerAccepted: boolean;
   chart: ChartPrefs;
+  /** CV Rating weighting: a preset, or "custom" with `ratingWeights`. */
+  ratingPreset: PresetId | "custom";
+  ratingWeights: PillarWeights;
+  /** Offer short plans (futures) for very weak ratings. */
+  allowShortPlans: boolean;
   set: (patch: Partial<Omit<SettingsState, "set" | "setChart" | "applyProfile" | "toggleWatch">>) => void;
   setChart: (patch: Partial<ChartPrefs>) => void;
   applyProfile: (p: RiskProfile) => void;
@@ -65,6 +71,9 @@ export const useSettings = create<SettingsState>()(
         magnet: true,
         layout: 1,
       },
+      ratingPreset: "balanced",
+      ratingWeights: { ...WEIGHT_PRESETS.balanced },
+      allowShortPlans: false,
       set: (patch) => set(patch),
       setChart: (patch) => set((s) => ({ chart: { ...s.chart, ...patch } })),
       applyProfile: (p) => set({ riskProfile: p, ...RISK_PROFILES[p] }),
@@ -74,3 +83,8 @@ export const useSettings = create<SettingsState>()(
     { name: "cv.settings", version: 1, storage: createJSONStorage(() => localStorage) },
   ),
 );
+
+/** The pillar weights the CV Rating should use right now. */
+export function activeRatingWeights(s: Pick<SettingsState, "ratingPreset" | "ratingWeights">): PillarWeights {
+  return s.ratingPreset === "custom" ? s.ratingWeights : WEIGHT_PRESETS[s.ratingPreset] ?? WEIGHT_PRESETS.balanced;
+}
