@@ -2,6 +2,22 @@
 
 Formati ndjek [Keep a Changelog](https://keepachangelog.com/) dhe versionet ndjekin [SemVer](https://semver.org/).
 
+## [1.1.0] — 2026-10-18
+
+### Shtuar
+- **Futures (`/futures`)** ([ADR 0011](docs/decisions/0011-futures-planner.md)):
+  - vendimi hyr / prit / mos hyr, me arsyet;
+  - zona e hyrjes, stop-i dhe sasia sipas rrezikut;
+  - leverage-i i rekomanduar dhe maksimumi i sigurt;
+  - isolated kundrejt cross, me likuidimin dhe humbjen maksimale;
+  - TP-të me PnL/ROE neto, breakeven me tarifat dhe funding-un, rregullat e daljes;
+  - të dhënat e derivateve nga OKX;
+  - paper trade me leverage dhe alerte.
+- **Ngjarjet e tregut:** golden/death cross, kryqëzimet EMA dhe MACD, RSI, SuperTrend, ADX, Bollinger,
+  breakout, volum, BOS/CHoCH, divergjenca dhe modele, në qirinj të mbyllur pa look-ahead. Shtohen edhe
+  ngjarjet e derivateve (funding ekstrem, OI, pozicionim i mbingarkuar, taker).
+- Intervali i funding-ut nga OKX përdoret kudo, edhe në llogaritjen vjetore.
+
 ## [1.0.1] — 2026-10-18
 
 Auditim i detajuar i të gjitha llogaritjeve dhe korrigjimet përkatëse ([ADR 0010](docs/decisions/0010-calculation-audit.md)).
@@ -97,5 +113,6 @@ Publikimi i parë i plotë. `pnpm install && pnpm dev` nis gjithë platformën p
 - Validimi jashtë mostrës i strategjive klasike jep profit factor 0.71–0.75: **nuk kanë dëshmuar avantazh**.
   Detajet: [`docs/strategies/README.md`](docs/strategies/README.md) dhe [`docs/strategies/rating.md`](docs/strategies/rating.md).
 
+[1.1.0]: https://github.com/edon-bublaku/CryptoVision-Pro/releases/tag/v1.1.0
 [1.0.1]: https://github.com/edon-bublaku/CryptoVision-Pro/releases/tag/v1.0.1
 [1.0.0]: https://github.com/edon-bublaku/CryptoVision-Pro/releases/tag/v1.0.0

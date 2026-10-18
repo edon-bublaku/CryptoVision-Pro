@@ -1,7 +1,7 @@
 {
   "name": "cryptovision",
   "private": true,
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "Platformë analize për kriptovalutat: CV Rating, rekomandime, sinjale, backtest, grafik me vizatime dhe menaxhim rreziku",
   "license": "MIT",
   "repository": {

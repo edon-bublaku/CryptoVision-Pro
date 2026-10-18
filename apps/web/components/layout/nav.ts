@@ -11,6 +11,7 @@ import {
   LayoutDashboard,
   Orbit,
   Radar,
+  Scale,
   Settings,
   Sparkles,
   UserRound,
@@ -49,6 +50,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { href: "/chart", key: "nav.chart", icon: CandlestickChart, keywords: "grafik chart draw vizato" },
       { href: "/signals", key: "nav.signals", icon: Zap, keywords: "sinjale signals buy sell" },
+      { href: "/futures", key: "nav.futures", icon: Scale, keywords: "futures leverage cross isolated likuidim funding perpetual long short" },
       { href: "/screener", key: "nav.screener", icon: Radar, keywords: "skaner scan filter" },
       { href: "/markets", key: "nav.markets", icon: Orbit, keywords: "rrg correlation tregu" },
       { href: "/compare", key: "nav.compare", icon: GitCompareArrows, keywords: "compare krahaso vs" },

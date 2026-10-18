@@ -14,6 +14,7 @@ const PAGES = [
   "/journal",
   "/chart?symbol=BTCUSDT",
   "/signals",
+  "/futures?symbol=BTCUSDT&tf=4h",
   "/screener",
   "/markets",
   "/compare",

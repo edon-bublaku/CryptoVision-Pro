@@ -218,3 +218,4 @@ export function maxLoss(p: { side: Side; entry: number; stopLoss?: number; quant
 export * from "./paper";
 export * from "./calculators";
 export * from "./journal";
+export * from "./futures";

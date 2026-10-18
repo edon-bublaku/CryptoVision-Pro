@@ -122,3 +122,25 @@ test("calculators: DCA backtest compares periodic buys with a lump sum", async (
   await expect(page.getByText(/\d+ blerje/)).toBeVisible();
   await expect(page.getByRole("img", { name: "DCA kundrejt blerjes së menjëhershme" })).toBeVisible();
 });
+
+test("futures: decision, leverage with isolated vs cross, exit plan, metrics and events", async ({ page }) => {
+  await acceptDisclaimer(page);
+  await page.goto("/futures?symbol=BTCUSDT&tf=4h");
+  await expect(page.getByRole("heading", { name: "Futures: plani i tregtisë" })).toBeVisible();
+  await expect(page.getByText("Ngjarjet e tregut")).toBeVisible({ timeout: 90_000 });
+  await expect(page.getByText("Të gjitha metrikat")).toBeVisible();
+  // A plan exists for at least one side: force LONG so the test doesn't depend on today's signal.
+  await page.getByRole("radio", { name: "LONG" }).click();
+  await expect(page.getByText("Me sa leverage dhe çfarë marzhi")).toBeVisible();
+  await expect(page.getByRole("rowheader", { name: /Isolated/ })).toBeVisible();
+  await expect(page.getByRole("rowheader", { name: "Cross" })).toBeVisible();
+  await expect(page.getByText("Kur të dalësh", { exact: true })).toBeVisible();
+  await expect(page.getByRole("rowheader", { name: "TP1" })).toBeVisible();
+  // Paper trade opens an isolated leveraged position or a limit order.
+  await page.getByRole("button", { name: /Hap paper trade \d+× isolated/ }).click();
+  const n = await page.evaluate(() => {
+    const s = JSON.parse(localStorage.getItem("cv.portfolio")!).state;
+    return s.positions.length + s.orders.length;
+  });
+  expect(n).toBe(1);
+});
