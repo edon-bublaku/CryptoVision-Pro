@@ -20,6 +20,14 @@ const schema = z.object({
   WORKER: z.enum(["inprocess", "external", "off"]).default("inprocess"),
   SCAN_TIMEFRAMES: z.string().default("1h,4h,1d"),
   SCAN_SIZE: z.coerce.number().int().min(5).max(200).default(60),
+  /**
+   * Order execution on Binance (ADR 0012): on (testnet + live behind the per-user switch), testnet
+   * (live refused for everyone) or off.
+   */
+  TRADING: z.enum(["on", "testnet", "off"]).default("on"),
+  /** Testnet hosts can be overridden (self-hosted mocks, Binance's demo hosts). Live hosts can't. */
+  BINANCE_TESTNET_SPOT_URL: z.string().url().optional(),
+  BINANCE_TESTNET_FUTURES_URL: z.string().url().optional(),
   LOG_LEVEL: z.enum(["trace", "debug", "info", "warn", "error"]).default("info"),
 });
 

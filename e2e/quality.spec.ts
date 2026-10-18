@@ -11,6 +11,7 @@ const PAGES = [
   "/recommendations",
   "/rating",
   "/portfolio",
+  "/trade",
   "/journal",
   "/chart?symbol=BTCUSDT",
   "/signals",

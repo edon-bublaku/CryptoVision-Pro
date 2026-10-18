@@ -1,4 +1,5 @@
 import {
+  ArrowRightLeft,
   Bell,
   BookOpenCheck,
   BriefcaseBusiness,
@@ -42,6 +43,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { href: "/recommendations", key: "nav.recommendations", icon: Sparkles, keywords: "portfolio model rekomandime" },
       { href: "/rating", key: "nav.rating", icon: Gauge, keywords: "score cv rating vleresim" },
       { href: "/portfolio", key: "nav.portfolio", icon: BriefcaseBusiness, keywords: "positions paper pozicione" },
+      { href: "/trade", key: "nav.trade", icon: ArrowRightLeft, keywords: "trade binance order urdher tregto api testnet live spot futures" },
       { href: "/journal", key: "nav.journal", icon: BookOpenCheck, keywords: "journal ditar statistika win rate pnl performance" },
     ],
   },

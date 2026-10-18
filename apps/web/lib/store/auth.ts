@@ -14,6 +14,8 @@ export interface Health {
   telegram: boolean;
   email: boolean;
   push: string | null;
+  /** Order execution on Binance: disabled without a database. */
+  trading?: "on" | "testnet" | "off";
 }
 
 export interface PublicUser {

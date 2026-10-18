@@ -63,6 +63,7 @@ Screenshot-et janë marrë me të dhëna live nga Binance më 18 tetor 2026; num
 | **Skaneri** | Ndërtues kriteresh (RSI, ADX, %B, kompresim BB, RVOL, distanca nga EMA-të / max 20-bar …), preset-e, skanime të ruajtura |
 | **Backtest** | Motori i njëjtë me sinjalet live. Tarifa, slippage, filtër HTF, kurba e kapitalit kundrejt blej-e-mbaj, drawdown, walk-forward, Monte Carlo (1000 simulime), tregtimet në grafik |
 | ↳ Ndërtuesi i strategjive | Rregulla LONG/SHORT pa kod mbi 30 seri (çmimi, EMA, RSI, MACD, Bollinger, ADX/DI, Stoch RSI, SuperTrend, Donchian, volumi relativ, CMF, MFI, OBV…) me operatorët `>`, `<`, kryqëzim lart/poshtë. Stop me ATR ose swing, konfluencë opsionale. Shembuj të gatshëm. Ruhen dhe sinkronizohen me llogarinë ([ADR 0006](docs/decisions/0006-paper-trading-custom-strategies.md)) |
+| **Tregtimi në Binance** | Urdhra realë në **Spot** dhe **Futures USDⓈ-M**, me **Testnet** si parazgjedhje dhe **Live** pas fjalëkalimit dhe 2FA. Çdo urdhër ka stop-loss të detyrueshëm dhe konfirmim që tregon kërkesat e sakta, sasinë e rrumbullakuar sipas filtrave të Binance, rrezikun me tarifat, likuidimin dhe R:R. Spot përdor OPOCO/OTOCO (hyrja + OCO take-profit/stop), futures përdor bracket (marzhi, leverage-i, hyrja, `STOP_MARKET` mbi mark, TP reduce-only). Nëse stop-i refuzohet, pozicioni mbyllet. Çelësat ruhen të enkriptuar në server, refuzohen nëse lejojnë tërheqje, dhe urdhrat nënshkruhen atje. Ka edhe kill switch, ndalim emergjent, kufi rreziku për urdhër, pozicione, urdhra të hapur dhe historik të çdo kërkese. Formulari mbushet nga `/futures` dhe sinjalet ([ADR 0012](docs/decisions/0012-binance-trading.md)) |
 | **Portofoli** | Pozicione me PnL live, madhësi automatike sipas rrezikut, rreziku i hapur, alokimi, ekspozimi sipas sektorit, paralajmërime korrelacioni (ρ > 0.8), ditar me eksport CSV |
 | ↳ Paper trading | Urdhra Market / LIMIT / STOP me SL, TP dhe skadim (GTC, 1h, 24h, 7d). Validim që urdhri të mos ekzekutohet gabimisht menjëherë. Ekzekutim automatik me çmimin live, mbyllje në SL/TP dhe likuidim i vlerësuar me leverage. Ditari shënon arsyen e daljes (SL/TP/LIQ) |
 | **Alertet** | Çmim mbi/nën, ndryshim 24h, RSI mbi/nën, **CV Rating mbi/nën** (njofton kur skori hyn në zonë, me peshat e tua; krijohet me një klik nga raporti i coin-it), sinjal i ri aktiv, kalim i vizatimit. Njoftime në aplikacion, browser, Web Push, Telegram dhe email. Me llogari, alertet vlerësohen nga worker-i edhe kur browser-i është i mbyllur |
@@ -99,7 +100,9 @@ Kopjoni `.env.example` në `apps/web/.env.local` vetëm nëse ju duhet diçka ng
 | `DATABASE_URL` | `postgres://…` për PostgreSQL të jashtëm (TimescaleDB opsionale), ose `off` për mënyrën vetëm-lokal (gjithçka në browser) |
 | `REDIS_URL` | Vetëm për disa instanca serveri ose për worker në proces të veçantë (BullMQ) |
 | `WORKER` | `inprocess` (default), `external` (`pnpm worker`, kërkon PostgreSQL) ose `off` |
-| `ENCRYPTION_KEY` | Çelësi AES-256-GCM për sekretet e 2FA. Kur mungon, gjenerohet një herë në `$CV_HOME/secret.key` (leje 0600). I detyrueshëm vetëm me PostgreSQL të jashtëm në prodhim |
+| `TRADING` | `on` (default: testnet + live pas aktivizimit me 2FA), `testnet` (live i ndaluar për të gjithë) ose `off` |
+| `BINANCE_TESTNET_SPOT_URL`, `BINANCE_TESTNET_FUTURES_URL` | Host tjetër për testnet-in (p.sh. `pnpm mock:binance` në `http://127.0.0.1:9911`). Hostet live nuk ndryshohen |
+| `ENCRYPTION_KEY` | Çelësi AES-256-GCM për sekretet e 2FA dhe çelësat e Binance. Kur mungon, gjenerohet një herë në `$CV_HOME/secret.key` (leje 0600). I detyrueshëm vetëm me PostgreSQL të jashtëm në prodhim |
 | `ANTHROPIC_API_KEY`, `AI_MODEL` | Shpjegimi me AI në raportin e coinit (default `claude-opus-5-5`) |
 | `TELEGRAM_BOT_TOKEN` | Bot-i i platformës për alertet në Telegram |
 | `RESEND_API_KEY`, `EMAIL_FROM` | Alerte me email |
@@ -113,18 +116,19 @@ përdorni `DATABASE_URL` me PostgreSQL dhe `REDIS_URL`.
 
 | Komanda | Çfarë bën |
 |---|---|
-| `pnpm test` | 205 teste: rekomanduesi (regjimi, korrelacioni, pesha, kauzaliteti), indikatorët kundrejt `technicalindicators`, motori, CV Rating dhe plani (pa look-ahead), rreziku, paper trading, analitika (korrelacion, beta, RRG), strategjitë custom, backtest-i, TOTP sipas RFC 6238, kriptimi, alertet e worker-it dhe të vlerësimit, kalkulatorët, DCA historik, ditari, sezonaliteti dhe repo-t e DB-së mbi PGlite |
+| `pnpm test` | 243 teste: tregtimi në Binance (nënshkrimi sipas shembujve zyrtarë, filtrat, plani, ekzekutimi dhe rrugët e dështimit kundër një Binance të simuluar), rekomanduesi (regjimi, korrelacioni, pesha, kauzaliteti), indikatorët kundrejt `technicalindicators`, motori, CV Rating dhe plani (pa look-ahead), rreziku, paper trading, analitika (korrelacion, beta, RRG), strategjitë custom, backtest-i, TOTP sipas RFC 6238, kriptimi, alertet e worker-it dhe të vlerësimit, kalkulatorët, DCA historik, ditari, sezonaliteti dhe repo-t e DB-së mbi PGlite |
 | `pnpm test:integration` | Të njëjtat teste, me repo-t e DB-së kundër PostgreSQL (`TEST_DATABASE_URL`) |
 | `pnpm typecheck` | TypeScript strict në të gjitha paketat |
 | `pnpm lint` / `pnpm lint:fix` | ESLint (hooks, Next.js, pa `any`, pa `console`) në gjithë monorepo-n |
 | `pnpm build` / `pnpm start` | Build dhe server prodhimi (Next.js 16) |
-| `pnpm test:e2e` | 32 teste Playwright: futures, UI, rekomandimet, CV Rating + plani, ndërtuesi i strategjive, tregu, paper trading, krahasimi, kalkulatorët dhe DCA historik, ditari, sezonaliteti, paleta e komandave, menuja mobile, alertet e vlerësimit, API (regjistrim → 2FA → sesione → sinkronizim), sinkronizim vizatimesh mes dy pajisjeve. Plus portat e cilësisë: 20 faqe pa tejkalim në 375/768/1440 px dhe pa shkelje serioze WCAG 2.1 AA (axe) në të dy temat |
+| `pnpm test:e2e` | 34 teste Playwright: tregtimi në Binance kundër simulatorit (çelësi, parapamja, konfirmimi, historiku, kill switch, Live pa 2FA), futures, UI, rekomandimet, CV Rating + plani, ndërtuesi i strategjive, tregu, paper trading, krahasimi, kalkulatorët dhe DCA historik, ditari, sezonaliteti, paleta e komandave, menuja mobile, alertet e vlerësimit, API (regjistrim → 2FA → sesione → sinkronizim), sinkronizim vizatimesh mes dy pajisjeve. Plus portat e cilësisë: 21 faqe pa tejkalim në 375/768/1440 px dhe pa shkelje serioze WCAG 2.1 AA (axe) në të dy temat |
 | `pnpm db:migrate` / `pnpm db:generate` | Zbato / gjenero migrimet |
 | `pnpm worker` | Worker në proces të veçantë (vetëm me `WORKER=external` dhe PostgreSQL) |
 | `pnpm backtest --symbol ETHUSDT --tf 4h --bars 3000 [--strategy breakout_volume]` | Backtest nga terminali |
 | `pnpm validate:oos` | Validim jashtë mostrës në 12 coin × 3 timeframe |
 | `pnpm validate:rating` | Validim historik i CV Rating (30 coin, 2021→sot), kalibrim walk-forward dhe riprodhim mujor i rekomanduesit → `calibration.json` |
 | `pnpm recommend [--size 40] [--equity 10000]` | Portofoli model i sotëm nga të dhënat live, në terminal |
+| `pnpm mock:binance` | Simulator lokal i Binance (`:9911`) që verifikon nënshkrimet. Për testim pa para reale: nis serverin me `BINANCE_TESTNET_*_URL=http://127.0.0.1:9911` dhe ruaj çelësin testnet `e2eMockApiKey0000000000000000001` / `e2eMockSecret000000000000000000001` |
 | `pnpm dev:clean` | Pastron cache-in e Turbopack dhe nis `pnpm dev` (nëse faqja rifreskohet pa pushim pas një ndërprerjeje) |
 
 CI (`.github/workflows/ci.yml`) ekzekuton typecheck, lint, testet me PostgreSQL dhe me PGlite, migrimet,
@@ -142,6 +146,7 @@ build-in dhe Playwright kundër serverit të prodhimit.
 | **Njoftime** | Në aplikacion, browser, Web Push, Telegram, email |
 | **Derivate** | Funding, open interest dhe long/short ratio nga OKX, si faktor në motorin e sinjaleve |
 | **AI** | `/api/ai/explain` transmeton shpjegimin nga Claude. AI vetëm shpjegon numrat e motorit, nuk i shpik |
+| **Tregtimi** | `/api/trade/*`: çelësa (verifikim te Binance, AES-256-GCM), cilësime (Live me 2FA, kill switch, rreziku maks.), llogaria, parapamja, urdhri (idempotent sipas `intentId`), anulimi, mbyllja, ndalimi emergjent, historiku. Klienti i nënshkruar `@cv/exchange/trade` (HMAC-SHA256, sinkronizim ore, filtrat me Decimal, kërkim pas përgjigjeve të humbura). `pnpm mock:binance` nis një simulator lokal për testim |
 | **Siguria** | CSP dhe headers sigurie, kontroll origin për kërkesat që ndryshojnë gjendje, rate limit (Redis ose në memorie), validim Zod kudo, çelës kriptimi i gjeneruar automatikisht |
 
 ## Arkitektura

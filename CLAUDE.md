@@ -362,8 +362,13 @@ interface Drawing {
 
 ## 7. Siguria
 
-- API keys të exchange-ve: **vetëm read-only**, të enkriptuara me AES-256-GCM (key nga KMS/env),
-  kurrë të loguara, kurrë të kthyera te klienti. Aplikacioni **nuk ekzekuton urdhra** në fazën 1.
+- API keys të exchange-ve: të enkriptuara me AES-256-GCM (key nga KMS/env), kurrë të loguara, kurrë të
+  kthyera te klienti. Ekzekutimi i urdhrave lejohet **vetëm** sipas [ADR 0012](docs/decisions/0012-binance-trading.md):
+  - Binance Spot + Futures USDⓈ-M;
+  - testnet si parazgjedhje, live pas fjalëkalimit dhe 2FA;
+  - konfirmim manual për çdo urdhër;
+  - stop-loss i detyrueshëm;
+  - çelësa pa leje tërheqjeje.
 - Auth.js me sesione të sigurta (httpOnly, sameSite=lax, secure), 2FA TOTP, rate limit në login.
 - Zod validim në çdo hyrje; CSP strikte; headers sigurie (helmet-equivalent në middleware).
 - Rate limiting për API (Redis sliding window) sipas user/IP.
@@ -466,6 +471,7 @@ PostgreSQL dhe Redis mbeten opsionalë, për shkallëzim. `DATABASE_URL=off` jep
 | F7 | ✅ | Paneli (me rekomandimet e sotme), Rekomandimet (`/recommendations`, [ADR 0008](docs/decisions/0008-recommender.md)), Vlerësimi (`/rating`), Sinjalet + track record, Raporti i coinit (CV Rating + plani + sinjali i hyrjes), Skaneri, Tregu (RRG, korrelacion, beta, volatilitet), Krahaso (`/compare`, 2–4 coin), Kalkulatorët (`/tools`, `@cv/risk` calculators + `dcaBacktest`), Ditari (`/journal`, `journalStats` te `@cv/risk`), Sezonaliteti (`/seasonality`, `seasonality` te `@cv/analytics`), Futures (`/futures`: `futuresPlan` te `@cv/risk`, `marketEvents`/`derivativeEvents` te `@cv/signals`, [ADR 0011](docs/decisions/0011-futures-planner.md)), `/welcome`. Navigim i grupuar (`components/layout/nav.ts`), paleta e komandave (Ctrl/⌘ K), menuja "Më shumë" në mobile |
 | F8 | ✅ | Auth me 2FA ([ADR 0003](docs/decisions/0003-custom-auth.md)), portofoli + paper trading (LIMIT/STOP, SL/TP, likuidim), alertet (përfshirë CV Rating mbi/nën, [ADR 0009](docs/decisions/0009-rating-alerts-and-quality-gates.md)), worker, njoftime: aplikacion, browser, Web Push, Telegram, email, SSE |
 | F9 | ✅ | 31 mjete vizatimi, derivate OKX, SMC, modele, shpjegim AI me Claude |
+| F11 | ✅ | Tregtimi në Binance ([ADR 0012](docs/decisions/0012-binance-trading.md)): `@cv/exchange/trade` (HMAC, filtrat me Decimal, OPOCO/OTOCO në spot, bracket në futures me Algo Service, kthim pas stop-it të refuzuar, kërkim pas përgjigjeve të humbura), çelësa të enkriptuar, Live me 2FA, kill switch, ndalim emergjent, idempotencë, faqja `/trade`, simulator (`pnpm mock:binance`) |
 | F10 | ◐ | i18n sq/en, temë e çelët, daltonizëm, pa animacione, pamje kompakte, PWA, CSP + headers, rate limit, audit log, pino, çelës kriptimi i gjeneruar, ESLint, axe (WCAG 2.1 AA) dhe teste responsive 375/768/1440 në CI. **Mungon:** OpenTelemetry/Sentry |
 
 **Kontratat aktuale** (ndryshohen vetëm me ADR):
@@ -475,6 +481,8 @@ PostgreSQL dhe Redis mbeten opsionalë, për shkallëzim. `DATABASE_URL=off` jep
 - `Snapshot`, `ScanRow`, `TrackedSignal` te `packages/engine/src/types.ts`.
 - `CustomStrategyDef` (Zod) te `packages/signals/src/custom.ts`; `PaperOrder` te `packages/risk/src/paper.ts`.
 - `Rating`, `PillarWeights`, `InvestmentPlan`, `Recommendation` te `packages/rating/src`; metrikat, kurbat dhe pragjet janë pjesë e kontratës.
+- `BracketPlan`, `SymbolRules` dhe rregullat e ekzekutimit te `packages/exchange/src/trade`; kërkesat e API-së te
+  `apps/web/lib/trade/schema.ts`.
 - Skema e DB-së te `packages/db/src/schema.ts`. Çdo ndryshim kërkon `pnpm db:generate`, i cili gjeneron SQL-në
   dhe e përfshin te `migrations.gen.ts`. Skedari i gjeneruar commit-ohet bashkë me SQL-në.
 - Store-t e ruajtura `cv.*`, të versionuara. `chartUi` nuk sinkronizohet (specifik për pajisjen).
@@ -483,10 +491,11 @@ PostgreSQL dhe Redis mbeten opsionalë, për shkallëzim. `DATABASE_URL=off` jep
 **Komandat reale:**
 
 - `pnpm dev` (platforma e plotë), `pnpm build && pnpm start`
-- `pnpm test` (205 teste, përfshirë DB-në mbi PGlite dhe testet e regresionit të auditimit, [ADR 0010](docs/decisions/0010-calculation-audit.md)), `pnpm typecheck`, `pnpm lint`, `pnpm test:e2e` (32 teste, përfshirë `e2e/quality.spec.ts`)
+- `pnpm test` (243 teste, përfshirë DB-në mbi PGlite dhe testet e regresionit të auditimit, [ADR 0010](docs/decisions/0010-calculation-audit.md)), `pnpm typecheck`, `pnpm lint`, `pnpm test:e2e` (34 teste, përfshirë `e2e/quality.spec.ts` dhe `e2e/trade.spec.ts`; Playwright nis edhe simulatorin e Binance)
 - `pnpm db:generate`, `pnpm db:migrate`, `pnpm test:integration` (kundër PostgreSQL)
 - `pnpm worker` (vetëm me `WORKER=external` dhe PostgreSQL)
 - `pnpm backtest …`, `pnpm validate:oos`, `pnpm validate:rating`, `pnpm recommend`
+- `pnpm mock:binance` (simulator lokal i Binance në :9911 për testnet, pa para reale)
 - `pnpm dev:clean` (pastron cache-in e Turbopack kur faqja rifreskohet pa pushim)
 
 `pnpm db:seed` nga §11 nuk ekziston ende.
@@ -512,7 +521,14 @@ PostgreSQL dhe Redis mbeten opsionalë, për shkallëzim. `DATABASE_URL=off` jep
 3. **Mos shpik të dhëna.** Asnjë çmim, statistikë backtest apo win-rate i hard-coded / i rremë në UI.
    Për zhvillim përdor fixtures të shënuara qartë (`__fixtures__/`) dhe të dhëna reale nga API.
 4. **Mos ndrysho kontratat** (`Signal`, `Drawing`, `ExchangeAdapter`, skema DB) pa ADR dhe migrim.
-5. **Asnjë ekzekutim urdhrash tregtimi** apo përdorim i API keys me leje trade/withdraw — jashtë scope-it.
+5. **Ekzekutimi i urdhrave vetëm sipas [ADR 0012](docs/decisions/0012-binance-trading.md).**
+   Mbeten jashtë scope-it:
+   - auto-trading (urdhra pa konfirmimin e përdoruesit);
+   - urdhra pa stop-loss;
+   - çelësa me leje tërheqjeje ose transferte;
+   - hoste live të ndryshueshëm.
+
+   Çdo ndryshim në `@cv/exchange/trade` kërkon teste kundër simulatorit dhe e2e `trade.spec.ts`.
 6. Kur shton strategji/indikator: kod + teste + dokumentim + backtest — të katërt në të njëjtin ndryshim.
 7. Tekstet e UI në shqip përmes i18n; mesazhet e commit-eve në anglisht, në formatin Conventional Commits.
 8. Kur diçka është e paqartë ose ka trade-off të rëndësishëm, ndalo dhe pyet në vend që të supozosh.

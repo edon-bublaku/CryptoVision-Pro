@@ -1,8 +1,8 @@
 {
   "name": "cryptovision",
   "private": true,
-  "version": "1.1.0",
-  "description": "Platformë analize për kriptovalutat: CV Rating, rekomandime, sinjale, backtest, grafik me vizatime dhe menaxhim rreziku",
+  "version": "1.2.0",
+  "description": "Platform\u00eb analize p\u00ebr kriptovalutat: CV Rating, rekomandime, sinjale, backtest, grafik me vizatime dhe menaxhim rreziku",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -27,7 +27,8 @@
     "worker": "pnpm --filter @cv/worker start",
     "validate:rating": "tsx scripts/validate-rating.ts",
     "dev:clean": "rm -rf apps/web/.next/dev && pnpm dev",
-    "recommend": "tsx scripts/recommend-now.ts"
+    "recommend": "tsx scripts/recommend-now.ts",
+    "mock:binance": "tsx scripts/mock-binance.ts"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.14.0",

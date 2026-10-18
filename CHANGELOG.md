@@ -2,6 +2,35 @@
 
 Formati ndjek [Keep a Changelog](https://keepachangelog.com/) dhe versionet ndjekin [SemVer](https://semver.org/).
 
+## [1.2.0] — 2026-10-18
+
+### Shtuar
+- **Tregtimi në Binance (`/trade`)** ([ADR 0012](docs/decisions/0012-binance-trading.md)):
+  - **Spot** dhe **Futures USDⓈ-M**, me **Testnet** si parazgjedhje. **Live** aktivizohet vetëm me fjalëkalim dhe 2FA.
+  - Çdo urdhër konfirmohet manualisht. Konfirmimi tregon kërkesat e sakta për Binance, sasinë e rrumbullakuar sipas
+    filtrave të simbolit, rrezikun me tarifat, likuidimin, R:R, gabimet dhe paralajmërimet.
+  - **Stop-loss i detyrueshëm:**
+    - spot: OPOCO/OTOCO (hyrja + OCO take-profit/stop, që Binance i vendos vetë kur hyrja mbushet);
+    - futures: `STOP_MARKET` mbi çmimin mark dhe deri në 3 take-profit reduce-only;
+    - nëse stop-i refuzohet, pozicioni mbyllet ose hyrja anulohet.
+  - Kur përgjigjja e Binance humbet, urdhri kërkohet sipas client id-së dhe nuk dërgohet dy herë. Edhe një konfirmim
+    i përsëritur nuk dërgon gjë të re.
+  - Çelësat API verifikohen te Binance, ruhen me AES-256-GCM dhe nuk kthehen kurrë në browser. Çelësat live me leje
+    tërheqjeje refuzohen.
+  - Kill switch, ndalim emergjent, rrezik maksimal për urdhër (0.1–2%), pozicione, urdhra të hapur (përfshirë algo),
+    mbyllje me market, anulim dhe historik i çdo kërkese.
+  - "Ekzekuto në Binance" nga `/futures` dhe nga kartat e sinjaleve.
+  - `TRADING=on|testnet|off` për operatorin. `pnpm mock:binance` nis një simulator lokal që verifikon nënshkrimet.
+- Testet: 31 teste unit për ekzekutimin, teste të DB-së, teste të modelit të formularit dhe 2 teste e2e kundër simulatorit.
+
+### Korrigjuar
+- Tema e çelët: jeshilja (bull) kishte kontrast 3.4:1 mbi të bardhë. Tani është 5.5:1 (WCAG AA), me tekst të bardhë
+  mbi butonat jeshilë. Paleta për daltonizëm ruan tekstin e errët mbi blu.
+
+### Shënim
+- Nga mjedisi i zhvillimit Binance kthen 451 (kufizim gjeografik). Kërkesat u ndërtuan sipas dokumentacionit zyrtar
+  dhe u testuan kundër simulatorit, jo kundër Binance-it real. Provojeni fillimisht në testnet.
+
 ## [1.1.0] — 2026-10-18
 
 ### Shtuar
@@ -113,6 +142,7 @@ Publikimi i parë i plotë. `pnpm install && pnpm dev` nis gjithë platformën p
 - Validimi jashtë mostrës i strategjive klasike jep profit factor 0.71–0.75: **nuk kanë dëshmuar avantazh**.
   Detajet: [`docs/strategies/README.md`](docs/strategies/README.md) dhe [`docs/strategies/rating.md`](docs/strategies/rating.md).
 
+[1.2.0]: https://github.com/edon-bublaku/CryptoVision-Pro/releases/tag/v1.2.0
 [1.1.0]: https://github.com/edon-bublaku/CryptoVision-Pro/releases/tag/v1.1.0
 [1.0.1]: https://github.com/edon-bublaku/CryptoVision-Pro/releases/tag/v1.0.1
 [1.0.0]: https://github.com/edon-bublaku/CryptoVision-Pro/releases/tag/v1.0.0

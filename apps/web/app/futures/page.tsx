@@ -5,7 +5,7 @@ import { baseAsset, formatCompact, formatPrice, formatQty, lastFinite, SIGNAL_TT
 import { universe } from "@cv/exchange";
 import { buildTradePlan, futuresPlan, orderProblem, type FuturesPlan } from "@cv/risk";
 import type { DerivativeEvent, MarketEvent, MarketEventKind } from "@cv/signals";
-import { Activity, AlertTriangle, Bell, CandlestickChart, ClipboardList, Gauge, Loader2, LogIn, LogOut, Scale, ShieldAlert } from "lucide-react";
+import { Activity, AlertTriangle, ArrowRightLeft, Bell, CandlestickChart, ClipboardList, Gauge, Loader2, LogIn, LogOut, Scale, ShieldAlert } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useMemo, useState } from "react";
@@ -19,6 +19,7 @@ import { useT, type TKey } from "@/lib/i18n";
 import { useAlerts } from "@/lib/store/alerts";
 import { usePortfolio } from "@/lib/store/portfolio";
 import { useSettings } from "@/lib/store/settings";
+import { tradeLink } from "@/lib/trade/model";
 import { cn, timeAgo } from "@/lib/utils";
 
 const TFS: Timeframe[] = ["15m", "1h", "4h", "1d"];
@@ -486,6 +487,11 @@ function ActionsBar({ symbol, plan, fp, livePrice }: { symbol: string; plan: Tra
       <Button variant="primary" onClick={toPaper}>
         <ClipboardList size={14} /> {t("fut.toPaper", { lev: fp.leverage })}
       </Button>
+      <Link href={tradeLink({ market: "futures", symbol, side: plan.side, entryType: price >= lo && price <= hi ? "MARKET" : "LIMIT", entry: plan.entry, stopLoss: plan.stopLoss, targets: plan.takeProfits, leverage: fp.leverage })}>
+        <Button>
+          <ArrowRightLeft size={14} /> {t("trade.toBinance")}
+        </Button>
+      </Link>
       <Button onClick={alerts}>
         <Bell size={14} /> {t("fut.toAlerts")}
       </Button>

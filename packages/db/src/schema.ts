@@ -242,9 +242,74 @@ export const auditLog = pgTable(
   (t) => [index("audit_user_idx").on(t.userId, t.createdAt)],
 );
 
+/**
+ * Binance API keys (ADR 0012). Key and secret are AES-256-GCM encrypted with the server key and are
+ * never sent back to the browser; only the last four characters of the key are shown.
+ */
+export const exchangeKeys = pgTable(
+  "exchange_keys",
+  {
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    env: text("env", { enum: ["testnet", "live"] }).notNull(),
+    market: text("market", { enum: ["spot", "futures"] }).notNull(),
+    apiKeyEnc: text("api_key_enc").notNull(),
+    secretEnc: text("secret_enc").notNull(),
+    keyHint: text("key_hint").notNull(),
+    /** What Binance reported for the key when it was verified (live: /sapi/v1/account/apiRestrictions). */
+    permissions: jsonb("permissions").$type<Record<string, boolean>>().notNull().default({}),
+    verifiedAt: ts("verified_at"),
+    createdAt: ts("created_at").notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.env, t.market] })],
+);
+
+/** Server-enforced trading switches: live trading is off until enabled with password and 2FA. */
+export const tradingSettings = pgTable("trading_settings", {
+  userId: uuid("user_id")
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  liveEnabled: boolean("live_enabled").notNull().default(false),
+  liveEnabledAt: ts("live_enabled_at"),
+  /** Blocks every new order (cancelling and closing still work). */
+  killSwitch: boolean("kill_switch").notNull().default(false),
+  /** Largest loss at the stop per order, in % of the account. */
+  maxRiskPct: doublePrecision("max_risk_pct").notNull().default(2),
+  updatedAt: ts("updated_at").notNull().defaultNow(),
+});
+
+/**
+ * Every confirmed trading action, keyed by the client's intent id: a repeated submit (double click,
+ * retry after a lost response) returns the stored result instead of sending orders twice.
+ */
+export const tradeIntents = pgTable(
+  "trade_intents",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    intentId: text("intent_id").notNull(),
+    env: text("env", { enum: ["testnet", "live"] }).notNull(),
+    market: text("market", { enum: ["spot", "futures"] }).notNull(),
+    symbol: text("symbol").notNull(),
+    action: text("action", { enum: ["bracket", "cancel", "close", "cancel_all"] }).notNull(),
+    status: text("status").notNull(),
+    request: jsonb("request").$type<Record<string, unknown>>().notNull(),
+    steps: jsonb("steps").$type<unknown[]>().notNull().default([]),
+    createdAt: ts("created_at").notNull().defaultNow(),
+    updatedAt: ts("updated_at").notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("trade_intents_user_intent_idx").on(t.userId, t.intentId), index("trade_intents_user_idx").on(t.userId, t.createdAt)],
+);
+
 export type User = typeof users.$inferSelect;
 export type Session = typeof sessions.$inferSelect;
 export type PositionRow = typeof positions.$inferSelect;
 export type AlertRow = typeof alerts.$inferSelect;
 export type AlertEventRow = typeof alertEvents.$inferSelect;
 export type SignalRow = typeof signals.$inferSelect;
+export type ExchangeKeyRow = typeof exchangeKeys.$inferSelect;
+export type TradingSettingsRow = typeof tradingSettings.$inferSelect;
+export type TradeIntentRow = typeof tradeIntents.$inferSelect;

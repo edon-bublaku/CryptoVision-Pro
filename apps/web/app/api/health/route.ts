@@ -26,6 +26,7 @@ export async function GET() {
       telegram: !!e.TELEGRAM_BOT_TOKEN,
       email: !!e.RESEND_API_KEY,
       push: pushEnabled() ? e.VAPID_PUBLIC_KEY : null,
+      trading: dbOk ? e.TRADING : "off",
       time: new Date().toISOString(),
     },
     { headers: { "Cache-Control": "no-store" } },

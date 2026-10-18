@@ -2,7 +2,7 @@
 
 import { baseAsset, formatPrice } from "@cv/core";
 import { positionSize } from "@cv/risk";
-import { Bell, BriefcaseBusiness, CandlestickChart, ChevronDown } from "lucide-react";
+import { ArrowRightLeft, Bell, BriefcaseBusiness, CandlestickChart, ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { useT } from "@/lib/i18n";
@@ -10,6 +10,7 @@ import { useAlerts } from "@/lib/store/alerts";
 import { usePortfolio } from "@/lib/store/portfolio";
 import type { ScanRow } from "@/lib/store/scan";
 import { useSettings } from "@/lib/store/settings";
+import { tradeLink } from "@/lib/trade/model";
 import { cn } from "@/lib/utils";
 import { Badge, Button } from "../ui/primitives";
 import { toast } from "../ui/toast";
@@ -89,6 +90,13 @@ export function SignalCard({ row, defaultOpen }: { row: ScanRow; defaultOpen?: b
                 </Button>
               )}
               {s.plan && (
+                <Link href={tradeTicket(s.symbol, s.price, s.plan)}>
+                  <Button size="xs">
+                    <ArrowRightLeft size={13} /> {t("trade.toBinance")}
+                  </Button>
+                </Link>
+              )}
+              {s.plan && (
                 <Button
                   size="xs"
                   onClick={() => {
@@ -117,4 +125,10 @@ export function SignalCard({ row, defaultOpen }: { row: ScanRow; defaultOpen?: b
       )}
     </div>
   );
+}
+
+/** Pre-filled Binance order ticket: market inside the entry zone, a limit at the planned entry otherwise. */
+function tradeTicket(symbol: string, price: number, p: NonNullable<ScanRow["signal"]["plan"]>) {
+  const inZone = price >= p.entryZone[0] && price <= p.entryZone[1];
+  return tradeLink({ symbol, side: p.side, entryType: inZone ? "MARKET" : "LIMIT", entry: p.entry, stopLoss: p.stopLoss, targets: p.takeProfits });
 }

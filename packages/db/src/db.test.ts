@@ -2,6 +2,14 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { sql } from "drizzle-orm";
 import {
   activeAlerts,
+  beginIntent,
+  deleteExchangeKey,
+  finishIntent,
+  getExchangeKey,
+  getTradingSettings,
+  listIntents,
+  putExchangeKey,
+  updateTradingSettings,
   closeDb,
   createSession,
   createUser,
@@ -121,5 +129,27 @@ describe(`db repositories (${url.startsWith("memory") ? "PGlite" : "PostgreSQL"}
     const rows = await getCandles(db, "BTCUSDT", "1h");
     expect(rows).toHaveLength(2);
     expect(rows[0]!.close).toBe(1.75);
+  });
+  it("stores exchange keys per environment and market, and trading switches with safe defaults", async () => {
+    expect(await getTradingSettings(db, userId)).toMatchObject({ liveEnabled: false, killSwitch: false, maxRiskPct: 2 });
+    await putExchangeKey(db, { userId, env: "testnet", market: "futures", apiKeyEnc: "a", secretEnc: "b", keyHint: "1234", permissions: {}, verifiedAt: new Date() });
+    await putExchangeKey(db, { userId, env: "testnet", market: "futures", apiKeyEnc: "c", secretEnc: "d", keyHint: "5678", permissions: {}, verifiedAt: null });
+    expect((await getExchangeKey(db, userId, "testnet", "futures"))?.keyHint).toBe("5678");
+    expect(await getExchangeKey(db, userId, "live", "futures")).toBeUndefined();
+    await deleteExchangeKey(db, userId, "testnet", "futures");
+    expect(await getExchangeKey(db, userId, "testnet", "futures")).toBeUndefined();
+    expect(await updateTradingSettings(db, userId, { killSwitch: true })).toMatchObject({ killSwitch: true, liveEnabled: false });
+    expect(await updateTradingSettings(db, userId, { maxRiskPct: 1 })).toMatchObject({ killSwitch: true, maxRiskPct: 1 });
+  });
+
+  it("claims a trade intent once, so a repeated submit sends nothing", async () => {
+    const i = { userId, intentId: "intent-1", env: "testnet" as const, market: "futures" as const, symbol: "BTCUSDT", action: "bracket" as const, request: { q: 1 } };
+    const a = await beginIntent(db, i);
+    expect(a.created).toBe(true);
+    const b = await beginIntent(db, i);
+    expect(b.created).toBe(false);
+    expect(b.row.id).toBe(a.row.id);
+    await finishIntent(db, a.row.id, "placed", [{ role: "entry", ok: true }]);
+    expect((await listIntents(db, userId))[0]).toMatchObject({ status: "placed", steps: [{ role: "entry", ok: true }] });
   });
 });

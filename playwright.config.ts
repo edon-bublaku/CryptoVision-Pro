@@ -17,5 +17,15 @@ export default defineConfig({
   },
   webServer: process.env.BASE_URL
     ? undefined
-    : { command: "pnpm --filter @cv/web dev", url: "http://localhost:3000", reuseExistingServer: true, timeout: 120_000 },
+    : [
+        // Local Binance simulator for e2e/trade.spec.ts (no real exchange is contacted).
+        { command: "pnpm mock:binance", url: "http://127.0.0.1:9911/api/v3/time", reuseExistingServer: true, timeout: 60_000 },
+        {
+          command: "pnpm --filter @cv/web dev",
+          url: "http://localhost:3000",
+          reuseExistingServer: true,
+          timeout: 120_000,
+          env: { BINANCE_TESTNET_SPOT_URL: "http://127.0.0.1:9911", BINANCE_TESTNET_FUTURES_URL: "http://127.0.0.1:9911" },
+        },
+      ],
 });

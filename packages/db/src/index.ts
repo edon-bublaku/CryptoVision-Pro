@@ -7,3 +7,4 @@ export * from "./repos/portfolio";
 export * from "./repos/alerts";
 export * from "./repos/signals";
 export * from "./repos/candles";
+export * from "./repos/trading";
