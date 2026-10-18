@@ -32,6 +32,9 @@ export interface ClosedTrade extends Position {
 
 export type { PaperOrder };
 
+/** Exchanges cap leverage at 125×; above ~200× an isolated position is liquidated on entry. */
+const clampLeverage = (l: number) => Math.min(125, Math.max(1, Number.isFinite(l) ? l : 1));
+
 interface PortfolioState {
   positions: Position[];
   closed: ClosedTrade[];
@@ -55,7 +58,7 @@ export const usePortfolio = create<PortfolioState>()(
       positions: [],
       closed: [],
       orders: [],
-      add: (p) => set((s) => ({ positions: [...s.positions, { ...p, id: crypto.randomUUID(), openedAt: p.openedAt ?? Date.now() }] })),
+      add: (p) => set((s) => ({ positions: [...s.positions, { ...p, leverage: clampLeverage(p.leverage), id: crypto.randomUUID(), openedAt: p.openedAt ?? Date.now() }] })),
       update: (id, patch) => set((s) => ({ positions: s.positions.map((p) => (p.id === id ? { ...p, ...patch } : p)) })),
       remove: (id) => set((s) => ({ positions: s.positions.filter((p) => p.id !== id) })),
       close: (id, exit, reason = "MANUAL") => {
@@ -68,7 +71,7 @@ export const usePortfolio = create<PortfolioState>()(
         }));
       },
       removeClosed: (id) => set((s) => ({ closed: s.closed.filter((c) => c.id !== id) })),
-      placeOrder: (o) => set((s) => ({ orders: [...s.orders, { ...o, id: crypto.randomUUID(), createdAt: Date.now() }] })),
+      placeOrder: (o) => set((s) => ({ orders: [...s.orders, { ...o, leverage: clampLeverage(o.leverage), id: crypto.randomUUID(), createdAt: Date.now() }] })),
       cancelOrder: (id) => set((s) => ({ orders: s.orders.filter((o) => o.id !== id) })),
       fillOrder: (id, marketPrice) => {
         const o = get().orders.find((x) => x.id === id);

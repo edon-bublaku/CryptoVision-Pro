@@ -2,7 +2,7 @@
 
 import type { Side } from "@cv/core";
 import { baseAsset, correlation, formatCompact, formatPrice } from "@cv/core";
-import { liquidationPrice, orderProblem, positionSize, unrealizedPnl, type OrderType } from "@cv/risk";
+import { liquidationPrice, maxLoss, orderProblem, positionSize, unrealizedPnl, type OrderType } from "@cv/risk";
 import { useQueries } from "@tanstack/react-query";
 import { AlertTriangle, BriefcaseBusiness, Download, Plus, Trash2, X } from "lucide-react";
 import Link from "next/link";
@@ -28,9 +28,9 @@ export default function PortfolioPage() {
 
   const rows = positions.map((p) => {
     const price = live[p.symbol]?.price ?? p.entry;
-    const { pnl, pct } = unrealizedPnl(p.side, p.entry, price, p.quantity);
-    const risk = p.stopLoss !== undefined ? Math.max(0, (p.side === "LONG" ? p.entry - p.stopLoss : p.stopLoss - p.entry) * p.quantity) : null;
-    return { p, price, pnl, pct, notional: price * p.quantity, risk };
+    const { pnl, roe } = unrealizedPnl(p.side, p.entry, price, p.quantity, p.leverage);
+    const risk = maxLoss(p);
+    return { p, price, pnl, roe, notional: price * p.quantity, risk };
   });
   const unrealized = rows.reduce((s, r) => s + r.pnl, 0);
   const realized = closed.reduce((s, c) => s + c.pnl, 0);
@@ -147,7 +147,7 @@ export default function PortfolioPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {rows.map(({ p, price, pnl, pct, risk }) => (
+                  {rows.map(({ p, price, pnl, roe, risk }) => (
                     <tr key={p.id} className="border-b border-line/60">
                       <td className="px-4 py-2">
                         <Link href={`/chart?symbol=${p.symbol}`} className="flex items-center gap-2 hover:text-accent">
@@ -176,7 +176,7 @@ export default function PortfolioPage() {
                         <div className={cn("num font-semibold", pnl >= 0 ? "text-bull" : "text-bear")}>
                           {pnl >= 0 ? "+" : ""}${pnl.toFixed(2)}
                         </div>
-                        <Pct value={pct * p.leverage} className="text-xs" />
+                        <Pct value={roe} className="text-xs" />
                       </td>
                       <td className="px-4 text-right whitespace-nowrap">
                         <Button
@@ -449,7 +449,8 @@ function AddPositionModal({ open, onClose }: { open: boolean; onClose: () => voi
               quantity,
               stopLoss: form.stopLoss ? +form.stopLoss : undefined,
               takeProfit: form.takeProfit ? +form.takeProfit : undefined,
-              leverage: Math.max(1, +form.leverage || 1),
+              // Exchanges cap leverage at 125×; above ~200× the position would be liquidated on entry.
+              leverage: Math.min(125, Math.max(1, +form.leverage || 1)),
             };
             if (isOrder) placeOrder({ ...base, type: exec, price: entry, expiresAt: expiry ? Date.now() + expiry : undefined, note: form.notes || undefined });
             else add({ ...base, entry: effEntry, notes: form.notes || undefined, paper: exec === "market" || undefined } satisfies Omit<Position, "id" | "openedAt">);

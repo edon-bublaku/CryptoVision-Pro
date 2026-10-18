@@ -90,8 +90,10 @@ export interface LeverageResult {
 }
 
 export function leverageCalc(i: LeverageInput): LeverageResult | null {
-  if (!pos(i.entry, i.leverage, i.margin) || i.leverage > 125) return null;
-  const mmr = D(i.maintenanceMargin ?? 0.005);
+  const mmrRate = i.maintenanceMargin ?? 0.005;
+  // Below 1× there is no liquidation; at 1/leverage ≤ maintenance margin the position is liquidated on entry.
+  if (!pos(i.entry, i.margin) || !(i.leverage >= 1) || i.leverage > 125 || !(mmrRate >= 0) || mmrRate >= 1 / i.leverage) return null;
+  const mmr = D(mmrRate);
   const notional = D(i.margin).times(i.leverage);
   const qty = notional.div(i.entry);
   const inv = D(1).div(i.leverage);
@@ -100,11 +102,12 @@ export function leverageCalc(i: LeverageInput): LeverageResult | null {
   const fee = D(i.feeRate ?? 0.0005);
   const exit = i.exit !== undefined && i.exit > 0 ? D(i.exit) : null;
   const fees = notional.times(fee).plus(exit ? qty.times(exit).times(fee) : notional.times(fee));
+  const liqClamped = Decimal.max(0, liq);
   const out: LeverageResult = {
     notional: num(notional, 2),
     quantity: num(qty),
-    liquidation: num(Decimal.max(0, liq)),
-    distanceToLiquidationPct: num(liq.minus(i.entry).abs().div(i.entry).times(100), 4),
+    liquidation: num(liqClamped),
+    distanceToLiquidationPct: num(liqClamped.minus(i.entry).abs().div(i.entry).times(100), 4),
     fees: num(fees, 4),
   };
   if (exit) {
@@ -134,11 +137,14 @@ export function rrTargets(side: Side, entry: number, stop: number, multiples: re
   return {
     risk: num(R),
     riskPct: num(R.div(entry).times(100), 4),
-    targets: multiples.map((m) => {
-      const price = D(entry).plus(R.times(m).times(dir));
-      return { r: m, price: num(price), movePct: num(price.minus(entry).div(entry).times(100), 4) };
-    }),
-    breakevenWinRate: multiples.map((m) => ({ r: m, winRate: num(D(1).div(D(1).plus(m)).times(100), 2) })),
+    // A short target at or below zero is unreachable, so it is left out.
+    targets: multiples
+      .map((m) => {
+        const price = D(entry).plus(R.times(m).times(dir));
+        return { r: m, price: num(price), movePct: num(price.minus(entry).div(entry).times(100), 4) };
+      })
+      .filter((t) => t.price > 0),
+    breakevenWinRate: multiples.filter((m) => D(entry).plus(R.times(m).times(dir)).gt(0)).map((m) => ({ r: m, winRate: num(D(1).div(D(1).plus(m)).times(100), 2) })),
   };
 }
 

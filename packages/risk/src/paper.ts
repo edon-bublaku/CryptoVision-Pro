@@ -64,6 +64,7 @@ export function orderProblem(o: Pick<PaperOrder, "side" | "type" | "price" | "st
 /** Isolated-margin liquidation estimate (maintenance margin 0.5%); null without leverage. */
 export function liquidationPrice(p: Pick<PaperPosition, "side" | "entry" | "leverage">, maintenanceMargin = 0.005): number | null {
   if (!(p.leverage > 1)) return null;
+  // At 1/leverage ≤ maintenance margin the position would be liquidated on entry: callers cap leverage.
   const inv = new Decimal(1).div(p.leverage);
   const e = new Decimal(p.entry);
   const mmr = new Decimal(maintenanceMargin);
@@ -87,6 +88,8 @@ export function closeResult(p: PaperPosition, exit: number, reason: ExitReason):
   const dir = p.side === "LONG" ? 1 : -1;
   const q = new Decimal(p.quantity);
   let pnl = new Decimal(exit).minus(p.entry).times(q).times(dir);
+  // Isolated margin: no exit can lose more than the margin put up.
+  if (p.leverage > 1) pnl = Decimal.max(pnl, new Decimal(p.entry).times(q).div(p.leverage).neg());
   if (reason === "LIQ") pnl = Decimal.min(pnl, new Decimal(p.entry).times(q).div(p.leverage).neg());
   const risk = p.stopLoss !== undefined ? new Decimal(p.entry).minus(p.stopLoss).abs().times(q) : null;
   return { pnl: pnl.toNumber(), r: risk && !risk.isZero() ? pnl.div(risk).toNumber() : undefined };

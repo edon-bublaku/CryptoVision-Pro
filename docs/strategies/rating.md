@@ -144,6 +144,8 @@ Rregullat janë deterministe dhe nuk janë përshtatur me të dhënat:
    - coin-at me korrelacion 90d mbi 0.85 me një coin që është zgjedhur tashmë.
 3. **Numri i coin-ave:** maksimumi 6 (i ndryshueshëm 3–10).
 4. **Peshat:** volatilitet i anasjelltë × (vlerësimi − 50) / 50, me tavan 35% për coin, të shkallëzuara sipas regjimit.
+   Tavani zbatohet me "water-filling": pjesa mbi 35% u shpërndahet të tjerëve deri në fund, ndaj cash mbetet
+   vetëm kur të gjithë coin-at janë në tavan ([ADR 0010](../decisions/0010-calculation-audit.md)).
 5. **Plani i çdo coin-i:** ai i seksionit 2. Në portofol, madhësia vjen nga pesha, ndërsa plani përcakton nivelet.
 
 ### Si do të kishte performuar (`pnpm validate:rating`)
@@ -153,12 +155,12 @@ Tarifa është 0.1% mbi qarkullimin, dhe portofoli mbahet 30 ditë.
 
 | | Kthimi total | CAGR | Rënia maks. | Volatiliteti | Sharpe |
 |---|---|---|---|---|---|
-| **Rekomanduesi** | **+69.7%** | **+11.7%** | **−41.7%** | 44% | 0.45 |
+| **Rekomanduesi** | **+70.0%** | **+11.8%** | **−41.8%** | 44% | 0.45 |
 | Blej & mbaj BTC | +86.2% | +13.9% | −65.0% | 52% | 0.51 |
 | Top 6 sipas vlerësimit, pa regjim, pa korrelacion | −65.2% | −19.9% | −81.6% | 68% | 0.01 |
 | Të 30 coin-at me peshë të barabartë | −58.5% | −16.8% | −76.7% | 79% | 0.11 |
 
-- **Mesatarisht** investohej 50% e kapitalit, në 3.6 coin.
+- **Mesatarisht** investohej 51% e kapitalit, në 3.6 coin.
 - **Regjimet:** risk-on 17, neutral 19, risk-off 22 periudha.
 - **Kundrejt BTC:** rekomanduesi e mundi BTC-në në 43% të periudhave.
 

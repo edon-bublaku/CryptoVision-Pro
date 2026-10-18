@@ -59,5 +59,6 @@ describe("positionSize", () => {
 describe("kelly & pnl", () => {
   it("quarter Kelly", () => expect(kellyFraction(0.5, 2, 1)).toBeCloseTo(0.0625, 10));
   it("never negative", () => expect(kellyFraction(0.2, 1, 1)).toBe(0));
-  it("short pnl", () => expect(unrealizedPnl("SHORT", 100, 90, 2)).toEqual({ pnl: 20, pct: 10 }));
+  it("short pnl", () => expect(unrealizedPnl("SHORT", 100, 90, 2)).toEqual({ pnl: 20, pct: 10, roe: 10 }));
+  it("ROE is computed before rounding", () => expect(unrealizedPnl("LONG", 100, 100.004, 1, 125).roe).toBe(0.5));
 });

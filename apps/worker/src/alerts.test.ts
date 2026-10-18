@@ -24,3 +24,11 @@ describe("price alert evaluation", () => {
     expect(crossed.fire).toMatch(/↑/);
   });
 });
+
+describe("lineLevel on a log chart", () => {
+  it("interpolates geometrically when the line was drawn on a log scale", () => {
+    const d = { id: "d", type: "trendline", points: [{ time: 0, price: 100 }, { time: 10, price: 200 }], log: true };
+    expect(lineLevel(d, 20)).toBeCloseTo(400, 9);
+    expect(lineLevel({ ...d, log: false }, 20)).toBeCloseTo(300, 9);
+  });
+});

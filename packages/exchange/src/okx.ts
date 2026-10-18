@@ -23,6 +23,8 @@ export interface DerivativesSnapshot {
   /** Current period funding rate (0.0001 = 0.01% per 8h). */
   fundingRate: number;
   nextFundingTime: number;
+  /** Hours between funding settlements (8 on most OKX swaps, 4 or 1 on some). */
+  fundingIntervalHours: number;
   /** Average funding over the last 30 periods (~10 days). */
   fundingAvg30: number;
   openInterestUsd: number;
@@ -47,7 +49,7 @@ export function okxIds(symbol: string): { instId: string; ccy: string } {
 export async function getDerivatives(symbol: string, signal?: AbortSignal): Promise<DerivativesSnapshot> {
   const { instId, ccy } = okxIds(symbol);
   const [funding, fundingHist, oi, ls, oiVol, taker] = await Promise.all([
-    okx(`/api/v5/public/funding-rate?instId=${instId}`, z.array(z.object({ fundingRate: z.string(), fundingTime: z.string() })), signal),
+    okx(`/api/v5/public/funding-rate?instId=${instId}`, z.array(z.object({ fundingRate: z.string(), fundingTime: z.string(), nextFundingTime: z.string().optional() })), signal),
     okx(`/api/v5/public/funding-rate-history?instId=${instId}&limit=30`, z.array(z.object({ fundingRate: z.string() })), signal),
     okx(`/api/v5/public/open-interest?instType=SWAP&instId=${instId}`, z.array(z.object({ oiUsd: z.string() })), signal),
     okx(`/api/v5/rubik/stat/contracts/long-short-account-ratio?ccy=${ccy}&period=1H`, rows, signal),
@@ -67,6 +69,7 @@ export async function getDerivatives(symbol: string, signal?: AbortSignal): Prom
     instId,
     fundingRate: +f.fundingRate,
     nextFundingTime: +f.fundingTime,
+    fundingIntervalHours: f.nextFundingTime && +f.nextFundingTime > +f.fundingTime ? (+f.nextFundingTime - +f.fundingTime) / 3_600_000 : 8,
     fundingAvg30: hist.length ? hist.reduce((a, b) => a + b, 0) / hist.length : NaN,
     openInterestUsd: oi[0] ? +oi[0].oiUsd : lastOi,
     oiChange24hPct: Number.isFinite(lastOi) && Number.isFinite(oi24) && oi24 > 0 ? ((lastOi - oi24) / oi24) * 100 : NaN,

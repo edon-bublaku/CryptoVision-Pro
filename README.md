@@ -112,7 +112,7 @@ përdorni `DATABASE_URL` me PostgreSQL dhe `REDIS_URL`.
 
 | Komanda | Çfarë bën |
 |---|---|
-| `pnpm test` | 158 teste: rekomanduesi (regjimi, korrelacioni, pesha, kauzaliteti), indikatorët kundrejt `technicalindicators`, motori, CV Rating dhe plani (pa look-ahead), rreziku, paper trading, analitika (korrelacion, beta, RRG), strategjitë custom, backtest-i, TOTP sipas RFC 6238, kriptimi, alertet e worker-it dhe të vlerësimit, kalkulatorët, DCA historik, ditari, sezonaliteti dhe repo-t e DB-së mbi PGlite |
+| `pnpm test` | 194 teste: rekomanduesi (regjimi, korrelacioni, pesha, kauzaliteti), indikatorët kundrejt `technicalindicators`, motori, CV Rating dhe plani (pa look-ahead), rreziku, paper trading, analitika (korrelacion, beta, RRG), strategjitë custom, backtest-i, TOTP sipas RFC 6238, kriptimi, alertet e worker-it dhe të vlerësimit, kalkulatorët, DCA historik, ditari, sezonaliteti dhe repo-t e DB-së mbi PGlite |
 | `pnpm test:integration` | Të njëjtat teste, me repo-t e DB-së kundër PostgreSQL (`TEST_DATABASE_URL`) |
 | `pnpm typecheck` | TypeScript strict në të gjitha paketat |
 | `pnpm lint` / `pnpm lint:fix` | ESLint (hooks, Next.js, pa `any`, pa `console`) në gjithë monorepo-n |
@@ -183,7 +183,7 @@ për Claude Code) janë në [`CLAUDE.md`](CLAUDE.md).
   - R:R ≥ 1.5;
   - nuk shkon kundër trendit të timeframe-it më të lartë;
   - strategjia ka **PF ≥ 1.2 me ≥ 6 trade** në backtest-in e atij coin-i ([ADR 0002](docs/decisions/0002-backtest-gate.md)).
-- Validimi jashtë mostrës tregon **profit factor 0.71–0.75**. Me fjalë të tjera, strategjitë klasike TA
+- Validimi jashtë mostrës tregon **profit factor 0.66–0.79**. Me fjalë të tjera, strategjitë klasike TA
   **nuk kanë dëshmuar avantazh** në këtë periudhë. Përdoreni aplikacionin për analizë, disiplinë rreziku dhe
   vendime të informuara, jo si makineri fitimi.
 

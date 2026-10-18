@@ -483,7 +483,7 @@ PostgreSQL dhe Redis mbeten opsionalë, për shkallëzim. `DATABASE_URL=off` jep
 **Komandat reale:**
 
 - `pnpm dev` (platforma e plotë), `pnpm build && pnpm start`
-- `pnpm test` (158 teste, përfshirë DB-në mbi PGlite), `pnpm typecheck`, `pnpm lint`, `pnpm test:e2e` (31 teste, përfshirë `e2e/quality.spec.ts`)
+- `pnpm test` (194 teste, përfshirë DB-në mbi PGlite dhe testet e regresionit të auditimit, [ADR 0010](docs/decisions/0010-calculation-audit.md)), `pnpm typecheck`, `pnpm lint`, `pnpm test:e2e` (31 teste, përfshirë `e2e/quality.spec.ts`)
 - `pnpm db:generate`, `pnpm db:migrate`, `pnpm test:integration` (kundër PostgreSQL)
 - `pnpm worker` (vetëm me `WORKER=external` dhe PostgreSQL)
 - `pnpm backtest …`, `pnpm validate:oos`, `pnpm validate:rating`, `pnpm recommend`

@@ -57,3 +57,15 @@ describe("evaluateOutcome", () => {
     expect(evaluateOutcome(tracked, [bar(1, 94, 108)], 3600).outcome).toBe("sl");
   });
 });
+
+describe("evaluateOutcome on the entry bar", () => {
+  it("does not credit a target that may have traded before the entry", () => {
+    // Gaps up to 108 (TP1) first, then falls into the zone: the order inside the bar is unknown.
+    const r = evaluateOutcome(tracked, [{ time: 3600, open: 106, low: 100, high: 108, close: 101 }], 3600);
+    expect(r.outcome).toBe("open");
+  });
+  it("credits targets when the bar opened inside the entry zone", () => {
+    const r = evaluateOutcome(tracked, [{ time: 3600, open: 100, low: 99.8, high: 108, close: 107 }], 3600);
+    expect(r.outcome).toBe("tp1");
+  });
+});

@@ -1,5 +1,5 @@
 import type { BacktestSummary, Candle, Side, Timeframe } from "@cv/core";
-import { HIGHER_TIMEFRAME, resample, seededRandom, TIMEFRAME_SECONDS } from "@cv/core";
+import { bucketStart, HIGHER_TIMEFRAME, resample, seededRandom, TIMEFRAME_SECONDS } from "@cv/core";
 import { buildTradePlan, type RiskConfig } from "@cv/risk";
 import { supportResistance, type Level } from "@cv/indicators";
 import { buildContext, evaluateAt, trendScore, type Strategy, type StrategyId } from "@cv/signals";
@@ -25,7 +25,7 @@ export interface BacktestConfig {
   htfFilter?: boolean;
 }
 
-export type ExitReason = "STOP" | "BREAKEVEN" | "TARGET" | "TIME" | "END";
+export type ExitReason = "STOP" | "BREAKEVEN" | "TRAIL" | "TARGET" | "TIME" | "END";
 
 export interface Fill {
   index: number;
@@ -131,6 +131,8 @@ export function runBacktest(candles: readonly Candle[], config: BacktestConfig =
   let levels: Level[] = [];
   let levelsAt = -Infinity;
 
+  // Slippage scales with the ATR known when the order is sent: the previous bar's for fills at
+  // this bar's open (using this bar's ATR would peek at its high/low), this bar's for fills at its close.
   const slip = (i: number) => (Number.isFinite(ctx.atr[i]) ? ctx.atr[i]! * cfg.slippageAtr : 0);
 
   const closeQty = (p: OpenPosition, i: number, price: number, qty: number, kind: Fill["kind"]) => {
@@ -175,7 +177,7 @@ export function runBacktest(candles: readonly Candle[], config: BacktestConfig =
     // 1. Fill the order decided at the previous close.
     if (pending && !pos) {
       const dir = pending.side === "LONG" ? 1 : -1;
-      const fillPrice = c.open + dir * slip(i);
+      const fillPrice = c.open + dir * slip(i - 1);
       const riskPerUnit = (fillPrice - pending.stop) * dir;
       if (riskPerUnit > 0) {
         let qty = (equity * cfg.riskPct) / 100 / riskPerUnit;
@@ -210,8 +212,9 @@ export function runBacktest(candles: readonly Candle[], config: BacktestConfig =
       const stopHit = long ? c.low <= p.stop : c.high >= p.stop;
       if (stopHit) {
         const gapPrice = long ? Math.min(p.stop, c.open) : Math.max(p.stop, c.open);
-        const reason: ExitReason = p.targets[0]!.hit ? "BREAKEVEN" : "STOP";
-        closeQty(p, i, gapPrice - (long ? 1 : -1) * slip(i), p.qtyOpen, reason);
+        // After TP2 the stop trails at TP1, after TP1 it sits at breakeven.
+        const reason: ExitReason = p.targets[1]!.hit ? "TRAIL" : p.targets[0]!.hit ? "BREAKEVEN" : "STOP";
+        closeQty(p, i, gapPrice - (long ? 1 : -1) * slip(i - 1), p.qtyOpen, reason);
         finalize(p, i, reason);
         pos = null;
       } else {
@@ -231,8 +234,8 @@ export function runBacktest(candles: readonly Candle[], config: BacktestConfig =
         if (p.qtyOpen <= p.qtyTotal * 1e-9) {
           finalize(p, i, "TARGET");
           pos = null;
-        } else if (i - p.entryIndex >= cfg.maxBarsInTrade) {
-          closeQty(p, i, c.close, p.qtyOpen, "TIME");
+        } else if (i - p.entryIndex + 1 >= cfg.maxBarsInTrade) {
+          closeQty(p, i, c.close - (long ? 1 : -1) * slip(i), p.qtyOpen, "TIME");
           finalize(p, i, "TIME");
           pos = null;
         }
@@ -271,7 +274,7 @@ export function runBacktest(candles: readonly Candle[], config: BacktestConfig =
 
   if (pos) {
     const i = candles.length - 1;
-    closeQty(pos, i, candles[i]!.close, pos.qtyOpen, "END");
+    closeQty(pos, i, candles[i]!.close - (pos.side === "LONG" ? 1 : -1) * slip(i), pos.qtyOpen, "END");
     finalize(pos, i, "END");
     const lastPoint = equityCurve[equityCurve.length - 1];
     if (lastPoint) {
@@ -306,7 +309,7 @@ function buildHtfScorer(candles: readonly Candle[], tf: Timeframe): (i: number) 
   const scores = htfCandles.map((_, k) => (k >= 60 ? trendScore(htfCtx, k) : undefined));
   const bucketIndex = new Map(htfCandles.map((c, k) => [c.time, k]));
   return (i) => {
-    const k = bucketIndex.get(Math.floor(candles[i]!.time / bucket) * bucket);
+    const k = bucketIndex.get(bucketStart(candles[i]!.time, bucket));
     if (k === undefined) return undefined;
     // The bucket containing bar i is complete only if bar i is its last bar.
     const closedK = htfCandles[k]!.lastIndex === i && candles[i]!.time + TIMEFRAME_SECONDS[tf] >= htfCandles[k]!.time + bucket ? k : k - 1;

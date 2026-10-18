@@ -476,7 +476,10 @@ export function ChartPanel(props: Props) {
     if (ov.has("pivots") && cs.length > 10) {
       const bucket = TIMEFRAME_SECONDS[tf] >= 86400 ? 604800 : 86400;
       const days = resample(cs, bucket);
-      const prev = days[days.length - 2];
+      // Pivots come from the last completed period: the newest bucket may already be complete
+      // (e.g. on the 1w chart only closed weeks are loaded).
+      const last = days[days.length - 1];
+      const prev = last && last.time + bucket <= Date.now() / 1000 ? last : days[days.length - 2];
       if (prev) {
         const pp = pivotPoints(prev);
         for (const [k, v] of Object.entries(pp))

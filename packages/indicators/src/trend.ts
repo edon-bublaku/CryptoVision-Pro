@@ -52,7 +52,8 @@ export function supertrend(
     if (Number.isFinite(lowerPrev)) lower = lower > lowerPrev || prevClose < lowerPrev ? lower : lowerPrev;
     if (Number.isFinite(upperPrev)) upper = upper < upperPrev || prevClose > upperPrev ? upper : upperPrev;
     let dir: number;
-    if (!Number.isFinite(upperPrev)) dir = 1;
+    // Same start as TradingView's ta.supertrend: down-trend (upper band) until the first cross.
+    if (!Number.isFinite(upperPrev)) dir = -1;
     else if (dirPrev === -1) dir = c.close > upper ? 1 : -1;
     else dir = c.close < lower ? -1 : 1;
     line[i] = dir === 1 ? lower : upper;
@@ -83,7 +84,8 @@ export function psar(candles: readonly Candle[], step = 0.02, max = 0.2): Series
       sar = Math.min(sar, p1.low, p2.low);
       if (c.low < sar) {
         up = false;
-        sar = ep;
+        // On a reversal the SAR restarts at the extreme point, but never inside the bars' range.
+        sar = Math.max(ep, c.high, p1.high);
         ep = c.low;
         af = step;
       } else if (c.high > ep) {
@@ -94,7 +96,7 @@ export function psar(candles: readonly Candle[], step = 0.02, max = 0.2): Series
       sar = Math.max(sar, p1.high, p2.high);
       if (c.high > sar) {
         up = true;
-        sar = ep;
+        sar = Math.min(ep, c.low, p1.low);
         ep = c.high;
         af = step;
       } else if (c.low < ep) {

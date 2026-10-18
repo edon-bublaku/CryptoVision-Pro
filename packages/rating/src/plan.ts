@@ -40,7 +40,7 @@ export interface Target {
 }
 
 export interface ExitRule {
-  id: "stop_close" | "breakeven" | "trailing" | "rating_reduce" | "rating_exit" | "ema50_close" | "time_stop" | "sell_now" | "sell_into_strength" | "hard_stop" | "re_entry";
+  id: "stop_close" | "breakeven" | "trailing" | "rating_reduce" | "rating_exit" | "rating_exit_above" | "ema50_close" | "ema50_close_above" | "time_stop" | "sell_now" | "sell_into_strength" | "hard_stop" | "re_entry";
   params: Record<string, number>;
 }
 
@@ -176,7 +176,10 @@ export function investmentPlan(rating: Rating, r: RatingContext, s: PlanSettings
   const farther = (dir > 0 ? resistances : supports).filter((p) => (dir > 0 ? p >= floor : p <= floor));
   const tp1 = farther[0] ?? (dir > 0 ? Math.max(a + 1.5 * R, floor) : Math.min(a - 1.5 * R, floor));
   const tp2 = farther.find((p) => Math.abs(p - a) >= Math.abs(tp1 - a) + R) ?? a + dir * Math.max(3 * R, Math.abs(tp1 - a) + R);
-  const tp3 = a + dir * Math.max(5 * R, Math.abs(tp2 - a) + 1.5 * R);
+  let tp3 = a + dir * Math.max(5 * R, Math.abs(tp2 - a) + 1.5 * R);
+  // A short target can't be at or below zero (TP3 reaches it once daily ATR is ~10% of the price):
+  // keep it above zero and below TP2 by capping it at half of TP2.
+  if (dir < 0) tp3 = Math.max(tp3, tp2 * 0.5);
   const rrOf = (p: number) => Math.abs(p - a) / R;
   const targets: Target[] = [
     { price: tp1, sizePct: 40, rr: rrOf(tp1), reason: farther[0] !== undefined ? "plan.reason.level" : "plan.reason.rMultiple" },
@@ -193,8 +196,9 @@ export function investmentPlan(rating: Rating, r: RatingContext, s: PlanSettings
     { id: "stop_close", params: { price: stop } },
     { id: "breakeven", params: { price: a } },
     { id: "trailing", params: { mult: 3, now: chandelier } },
-    ...(dir > 0 ? [{ id: "rating_reduce" as const, params: { below: 45 } }, { id: "rating_exit" as const, params: { below: 30 } }] : [{ id: "rating_exit" as const, params: { below: 55 } }]),
-    ...(fin(ema50) && (dir > 0 ? c > ema50 : c < ema50) ? [{ id: "ema50_close" as const, params: { price: ema50 } }] : []),
+    // A short is closed when the rating recovers, i.e. rises above the level.
+    ...(dir > 0 ? [{ id: "rating_reduce" as const, params: { below: 45 } }, { id: "rating_exit" as const, params: { below: 30 } }] : [{ id: "rating_exit_above" as const, params: { above: 55 } }]),
+    ...(fin(ema50) && (dir > 0 ? c > ema50 : c < ema50) ? [{ id: dir > 0 ? ("ema50_close" as const) : ("ema50_close_above" as const), params: { price: ema50 } }] : []),
     { id: "time_stop", params: { days: 45 } },
   ];
 

@@ -515,7 +515,7 @@ const sq = {
   "landing.f6": "Siguri",
   "landing.f6d": "2FA TOTP, sesione me hash, rate limiting, CSP strikte dhe enkriptim AES-256-GCM.",
   "landing.honest": "Ndershmëria mbi gjithçka",
-  "landing.honestD": "Testuam strategjitë klasike jashtë mostrës: profit factor 0.71–0.75. Prandaj aplikacioni tregon statistikat reale te çdo sinjal dhe e ul në \"vëzhgim\" kur strategjia s'ka fituar në atë coin.",
+  "landing.honestD": "Testuam strategjitë klasike jashtë mostrës: profit factor 0.66–0.79. Prandaj aplikacioni tregon statistikat reale te çdo sinjal dhe e ul në \"vëzhgim\" kur strategjia s'ka fituar në atë coin.",
   "landing.live": "Tregu tani",
   "nav.markets": "Tregu",
   "markets.title": "Inteligjenca e tregut",
@@ -1080,6 +1080,10 @@ const sq = {
   "tools.hist.shorter": "Coin-i ka vetëm {n} vjet histori në Binance; përdoret e gjithë historia.",
   "tools.hist.note": "Përfshin tarifën nga Cilësimet. 'Pika më e keqe' është rënia maksimale e vlerës ndaj parave të futura deri atëherë. Rezultatet e kaluara nuk garantojnë të ardhmen.",
   "journal.exitCol": "Dalja",
+  "backtest.exit.TRAIL": "Stop i lëvizur (te TP1)",
+  "alerts.inZone": "Çmimi është tashmë në zonën e hyrjes",
+  "plan.rule.rating_exit_above": "Nëse CV Rating rritet mbi {above} → mbyll short-in plotësisht.",
+  "plan.rule.ema50_close_above": "Mbyllje ditore mbi EMA50 ({price}) → paralajmërim: rënia po dobësohet, ul short-in.",
 } as const;
 
 export type TKey = keyof typeof sq;
@@ -1523,7 +1527,7 @@ const en: Record<TKey, string> = {
   "landing.f6": "Security",
   "landing.f6d": "TOTP 2FA, hashed sessions, rate limiting, strict CSP and AES-256-GCM encryption.",
   "landing.honest": "Honesty above all",
-  "landing.honestD": "We tested the classic strategies out-of-sample: profit factor 0.71–0.75. That's why the app shows real stats on every signal and downgrades it to \"watching\" when the strategy hasn't earned it on that coin.",
+  "landing.honestD": "We tested the classic strategies out-of-sample: profit factor 0.66–0.79. That's why the app shows real stats on every signal and downgrades it to \"watching\" when the strategy hasn't earned it on that coin.",
   "landing.live": "Market now",
   "nav.markets": "Markets",
   "markets.title": "Market intelligence",
@@ -2088,6 +2092,10 @@ const en: Record<TKey, string> = {
   "tools.hist.shorter": "The coin has only {n} years of history on Binance; the full history is used.",
   "tools.hist.note": "Includes the fee from Settings. 'Worst point' is the deepest fall of value against the money put in so far. Past results do not guarantee future ones.",
   "journal.exitCol": "Exit",
+  "backtest.exit.TRAIL": "Trailing stop (at TP1)",
+  "alerts.inZone": "Price is already in the entry zone",
+  "plan.rule.rating_exit_above": "If the CV Rating rises above {above} → close the short fully.",
+  "plan.rule.ema50_close_above": "Daily close above EMA50 ({price}) → warning: downtrend weakening, trim the short.",
 };
 
 const dicts: Record<Lang, Record<TKey, string>> = { sq, en };

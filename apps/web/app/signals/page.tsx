@@ -1,7 +1,7 @@
 "use client";
 
 import type { Timeframe } from "@cv/core";
-import { baseAsset, formatPrice } from "@cv/core";
+import { baseAsset, formatPrice, TIMEFRAME_SECONDS } from "@cv/core";
 import { History, Loader2, RefreshCw, ShieldAlert, Zap } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
@@ -238,7 +238,7 @@ function TrackRecord({ tracked }: { tracked: TrackedSignal[] }) {
                   <td className="px-2 py-2">
                     <Badge tone={x.outcome === "sl" ? "bear" : x.outcome.startsWith("tp") ? "bull" : x.outcome === "open" ? "accent" : "neutral"}>{t(`signals.outcome.${x.outcome}`)}</Badge>
                   </td>
-                  <td className={cn("px-4 py-2 text-right text-xs text-muted")}>{timeAgo(x.signal.candleTime * 1000, lang)}</td>
+                  <td className={cn("px-4 py-2 text-right text-xs text-muted")}>{timeAgo((x.signal.candleTime + (TIMEFRAME_SECONDS[x.signal.timeframe as Timeframe] ?? 0)) * 1000, lang)}</td>
                 </tr>
               ))}
             </tbody>

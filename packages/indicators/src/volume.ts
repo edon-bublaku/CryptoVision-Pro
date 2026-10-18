@@ -88,7 +88,8 @@ export function volumeProfile(candles: readonly Candle[], binCount = 40, valueAr
   for (const c of candles) {
     const range = Math.max(c.high - c.low, step * 1e-6);
     const buyShare = c.takerBuyVolume !== undefined && c.volume > 0 ? c.takerBuyVolume / c.volume : c.close >= c.open ? 0.6 : 0.4;
-    const first = Math.max(0, Math.floor((c.low - lo) / step));
+    // Clamped to the last bin too: a zero-range candle at the window high would otherwise fall past it.
+    const first = Math.min(binCount - 1, Math.max(0, Math.floor((c.low - lo) / step)));
     const lastBin = Math.min(binCount - 1, Math.floor((c.high - lo) / step));
     for (let b = first; b <= lastBin; b++) {
       const bin = bins[b]!;

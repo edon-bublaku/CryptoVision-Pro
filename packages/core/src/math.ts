@@ -6,8 +6,8 @@ export function last<T>(arr: readonly T[], offset = 0): T | undefined {
 
 /** Last finite value of a series (indicator warm-up produces NaN). */
 export function lastFinite(arr: readonly number[], offset = 0): number {
-  const v = arr[arr.length - 1 - offset];
-  return v === undefined ? NaN : v;
+  for (let i = arr.length - 1 - offset; i >= 0; i--) if (Number.isFinite(arr[i])) return arr[i]!;
+  return NaN;
 }
 
 export function mean(xs: readonly number[]): number {

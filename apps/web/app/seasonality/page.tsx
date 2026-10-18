@@ -100,7 +100,7 @@ function SeasonalityView() {
 function Body({ s, symbol }: { s: Seasonality; symbol: string }) {
   const t = useT();
   const lang = useSettings((x) => x.lang);
-  const years = Math.max(1, (s.last - s.first) / (365 * 86_400));
+  const years = (s.last - s.first) / (365 * 86_400);
   return (
     <>
       <Card className="grid grid-cols-2 gap-4 p-4 sm:grid-cols-3 lg:grid-cols-6">

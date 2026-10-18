@@ -3,7 +3,12 @@ import type { TrackedSignal } from "./types";
 const RANK: TrackedSignal["outcome"][] = ["pending", "open", "tp1", "tp2", "tp3"];
 
 /** Replays candles after the signal: entry must trade first, then stop vs targets (stop wins ties). */
-export function evaluateOutcome(tsig: TrackedSignal, after: { time: number; high: number; low: number; close: number }[], tfSec: number): TrackedSignal {
+/**
+ * Follows a signal bar by bar. The order of events inside a bar is unknown, so the bar that first
+ * reaches the entry zone is treated pessimistically: its stop counts, but its targets only count
+ * when the bar opened inside the zone (otherwise the high/low may have come before the entry).
+ */
+export function evaluateOutcome(tsig: TrackedSignal, after: { time: number; open?: number; high: number; low: number; close: number }[], tfSec: number): TrackedSignal {
   const plan = tsig.signal.plan;
   if (!plan) return { ...tsig, outcome: "expired", updatedAt: Date.now() };
   const long = plan.side === "LONG";
@@ -12,6 +17,7 @@ export function evaluateOutcome(tsig: TrackedSignal, after: { time: number; high
   let best = 0;
   let stop = plan.stopLoss;
   for (const c of after) {
+    let entryBar = false;
     if (outcome === "pending") {
       const touched = c.low <= plan.entryZone[1] && c.high >= plan.entryZone[0];
       if (!touched) {
@@ -19,9 +25,11 @@ export function evaluateOutcome(tsig: TrackedSignal, after: { time: number; high
         continue;
       }
       outcome = "open";
+      entryBar = !(c.open !== undefined && c.open >= plan.entryZone[0] && c.open <= plan.entryZone[1]);
     }
     const adverse = long ? c.low <= stop : c.high >= stop;
     if (adverse) return { ...tsig, outcome: outcome === "open" ? "sl" : outcome, bestR: best, updatedAt: Date.now() };
+    if (entryBar) continue;
     const fav = long ? c.high - plan.entry : plan.entry - c.low;
     best = Math.max(best, risk > 0 ? fav / risk : 0);
     const tps = plan.takeProfits;

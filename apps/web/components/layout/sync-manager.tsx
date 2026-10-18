@@ -111,7 +111,7 @@ export function SyncManager() {
             value: a.value,
             timeframe: a.timeframe,
             drawingId: a.drawingId,
-            drawing: d ? { id: d.id, type: d.type, points: d.points.slice(0, 3) } : undefined,
+            drawing: d ? { id: d.id, type: d.type, points: d.points.slice(0, 3), log: useSettings.getState().chart.log } : undefined,
             once: a.once,
             active: a.active,
             createdAt: a.createdAt,

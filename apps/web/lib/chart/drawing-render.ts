@@ -156,9 +156,15 @@ export function toPixels(d: Drawing, env: RenderEnv): P[] | null {
 }
 
 /** Price along the line through two points at a given time (for channels / alerts). */
-export function priceOnLine(a: DrawingPoint, b: DrawingPoint, t: number): number {
+/**
+ * Price of the straight line through a and b at time t. On a log price scale the line on screen
+ * is straight in log(price), so the interpolation must be geometric to match what the user drew.
+ */
+export function priceOnLine(a: DrawingPoint, b: DrawingPoint, t: number, log = false): number {
   if (b.time === a.time) return b.price;
-  return a.price + ((b.price - a.price) * (t - a.time)) / (b.time - a.time);
+  const k = (t - a.time) / (b.time - a.time);
+  if (log && a.price > 0 && b.price > 0) return a.price * Math.pow(b.price / a.price, k);
+  return a.price + (b.price - a.price) * k;
 }
 
 /** Geometry used both to draw and to hit-test, so they never disagree. */
@@ -496,14 +502,16 @@ function drawOne(ctx: Ctx, d: Drawing, env: RenderEnv, selected: boolean, hovere
       ctx.strokeStyle = "#8b95a8";
       line(ctx, { x: x1, y: e.y }, { x: x2, y: e.y });
       const [pe, ps, pt] = pts as [DrawingPoint, DrawingPoint, DrawingPoint];
-      const risk = Math.abs(pe.price - ps.price);
-      const rr = risk === 0 ? 0 : Math.abs(pt.price - pe.price) / risk;
+      // Side follows the stop; a target on the losing side gives a negative R:R.
+      const dir = pe.price >= ps.price ? 1 : -1;
+      const risk = (pe.price - ps.price) * dir;
+      const rr = risk === 0 ? 0 : ((pt.price - pe.price) * dir) / risk;
       const tgtPct = ((pt.price - pe.price) / pe.price) * 100;
       const stopPct = ((ps.price - pe.price) / pe.price) * 100;
       const mid = (x1 + x2) / 2;
       label(ctx, `TP ${formatPrice(pt.price)} (${tgtPct >= 0 ? "+" : ""}${tgtPct.toFixed(2)}%)`, mid, t.y + (t.y < e.y ? -10 : 10), bull, { align: "center", bg: bull, fg: "#fff", font: 10 });
       label(ctx, `SL ${formatPrice(ps.price)} (${stopPct >= 0 ? "+" : ""}${stopPct.toFixed(2)}%)`, mid, s.y + (s.y > e.y ? 10 : -10), bear, { align: "center", bg: bear, fg: "#fff", font: 10 });
-      label(ctx, `${pe.price > ps.price ? "LONG" : "SHORT"} · R:R ${rr.toFixed(2)}`, mid, e.y, "#e7ebf3", { align: "center", bg: "rgba(16,20,28,0.85)", font: 10 });
+      label(ctx, `${dir > 0 ? "LONG" : "SHORT"} · R:R ${rr.toFixed(2)}`, mid, e.y, "#e7ebf3", { align: "center", bg: "rgba(16,20,28,0.85)", font: 10 });
       break;
     }
     case "measure":

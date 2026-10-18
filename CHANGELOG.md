@@ -2,6 +2,55 @@
 
 Formati ndjek [Keep a Changelog](https://keepachangelog.com/) dhe versionet ndjekin [SemVer](https://semver.org/).
 
+## [1.0.1] — 2026-10-18
+
+Auditim i detajuar i të gjitha llogaritjeve dhe korrigjimet përkatëse ([ADR 0010](docs/decisions/0010-calculation-audit.md)).
+Formulat kryesore ishin të sakta. Gabimet ishin në rregulla dhe raste kufitare.
+
+### Korrigjuar
+- **R:R i planit të tregtisë:** targetet përtej nivelit kundërshtues numërohen vetëm deri te niveli, ndaj
+  rregulli "R:R < 1.5 → vëzhgim" funksionon (më parë minimumi ishte 2.2). TP1 nuk del më në anën e humbjes.
+- **Leverage:**
+  - një stop që kalon likuidimin humb më së shumti marzhin;
+  - rreziku i hapur kufizohet nga marzhi;
+  - ROE llogaritet para rrumbullakimit;
+  - leverage-i maksimal është 125×.
+- **Backtest-i:**
+  - slippage-i pa look-ahead;
+  - slippage edhe në daljet TIME/END;
+  - kohëzgjatja maksimale numërohet saktë;
+  - javët nisin të hënën, si te Binance;
+  - dalja pas TP2 ka emrin e vet ("TRAIL").
+- **Track record:** targetet në barin e hyrjes nuk numërohen nëse mund të kenë ndodhur para hyrjes.
+- **Indikatorët:**
+  - Volume Profile nuk humb volum;
+  - PSAR në barin e kthesës;
+  - MFI pa lëvizje = 50;
+  - HMA me floor(√n);
+  - fillimi i SuperTrend si te TradingView;
+  - EMA me boshllëqe;
+  - `lastFinite`;
+  - harami dhe morning/evening star.
+- **Rekomanduesi:**
+  - tavani 35% shpërndahet plotësisht, ndaj portofoli nuk mbetet nën-investuar;
+  - korrelacioni llogaritet sipas datës.
+- **Planet SHORT:** targetet mbeten mbi zero dhe rregullat e daljes kanë drejtimin e duhur.
+- **UI:**
+  - R:R i mjetit Long/Short me drejtim;
+  - alerti i zonës së hyrjes nuk shkrep menjëherë;
+  - alertet e vizatimit ndjekin shkallën log;
+  - pivot-et javore;
+  - shenja e stop-it për SHORT;
+  - rreziku real;
+  - funding-u vjetor sipas intervalit;
+  - gjerësia e tregut;
+  - formatimi i numrave shumë të vegjël dhe i njësive (1.00M, jo 1000.00K).
+- **Teste:** 36 teste të reja regresioni (gjithsej 194).
+
+### Rezultatet pas korrigjimeve
+- Validimi jashtë mostrës: 629 trade, PF 0.79 (të gjitha) dhe 146 trade, PF 0.66 (me gate). Ende pa avantazh.
+- Rekomanduesi historik: +70.0% (më parë +69.7%), rënia maksimale −41.8%.
+
 ## [1.0.0] — 2026-10-18
 
 Publikimi i parë i plotë. `pnpm install && pnpm dev` nis gjithë platformën pa asnjë shërbim të jashtëm.
@@ -48,4 +97,5 @@ Publikimi i parë i plotë. `pnpm install && pnpm dev` nis gjithë platformën p
 - Validimi jashtë mostrës i strategjive klasike jep profit factor 0.71–0.75: **nuk kanë dëshmuar avantazh**.
   Detajet: [`docs/strategies/README.md`](docs/strategies/README.md) dhe [`docs/strategies/rating.md`](docs/strategies/rating.md).
 
+[1.0.1]: https://github.com/edon-bublaku/CryptoVision-Pro/releases/tag/v1.0.1
 [1.0.0]: https://github.com/edon-bublaku/CryptoVision-Pro/releases/tag/v1.0.0

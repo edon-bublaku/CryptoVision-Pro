@@ -55,13 +55,27 @@ export function rma(values: readonly number[], period: number): Series {
 
 function expSmooth(values: readonly number[], period: number, alpha: number): Series {
   const out = nanArray(values.length);
-  const start = firstFinite(values);
-  if (values.length - start < period) return out;
+  // Seed from the first `period` consecutive finite values, so one gap can't poison the series.
+  let run = 0;
   let seed = 0;
-  for (let i = start; i < start + period; i++) seed += values[i]!;
+  let seededAt = -1;
+  for (let i = firstFinite(values); i < values.length; i++) {
+    const v = values[i]!;
+    if (!Number.isFinite(v)) {
+      run = 0;
+      seed = 0;
+      continue;
+    }
+    seed += v;
+    if (++run === period) {
+      seededAt = i;
+      break;
+    }
+  }
+  if (seededAt < 0) return out;
   let prev = seed / period;
-  out[start + period - 1] = prev;
-  for (let i = start + period; i < values.length; i++) {
+  out[seededAt] = prev;
+  for (let i = seededAt + 1; i < values.length; i++) {
     const v = values[i]!;
     if (!Number.isFinite(v)) {
       out[i] = prev;
@@ -97,7 +111,8 @@ export function hma(values: readonly number[], period: number): Series {
   const half = wma(values, Math.max(1, Math.floor(period / 2)));
   const full = wma(values, period);
   const diff = half.map((h, i) => 2 * h - full[i]!);
-  return wma(diff, Math.max(1, Math.round(Math.sqrt(period))));
+  // Hull's definition uses the integer part of √n (as TradingView does).
+  return wma(diff, Math.max(1, Math.floor(Math.sqrt(period))));
 }
 
 export function vwma(candles: readonly Candle[], period: number): Series {
@@ -197,6 +212,8 @@ export class EmaState {
   private seed: number[] = [];
   constructor(private readonly period: number) {}
   next(v: number): number {
+    // A missing tick keeps the current value instead of restarting the seed (matches batch ema).
+    if (!Number.isFinite(v)) return this.value;
     if (Number.isNaN(this.value)) {
       this.seed.push(v);
       if (this.seed.length === this.period) {

@@ -1,7 +1,7 @@
 "use client";
 
 import type { Candle, Timeframe } from "@cv/core";
-import { formatCompact, formatPrice, lastFinite } from "@cv/core";
+import { formatCompact, formatPrice, formatQty, lastFinite } from "@cv/core";
 import { doubleTopsBottoms, recentCandlePatterns, rsi } from "@cv/indicators";
 import { buildContext, trendScore } from "@cv/signals";
 import { useQueries } from "@tanstack/react-query";
@@ -24,6 +24,7 @@ import { ActionBadge, Gauge } from "../ui/viz";
 import { AiExplain, DerivativesPanel } from "./report-extras";
 import { HistoricalEvidence, InvestmentPlanView, RatingSummary } from "../rating/rating-view";
 import { useRating } from "@/lib/data/rating";
+import { useLivePrices } from "@/lib/data/hooks";
 
 const MTF: Timeframe[] = ["15m", "1h", "4h", "1d", "1w"];
 
@@ -98,6 +99,7 @@ function Report({ symbol, timeframe, data }: { symbol: string; timeframe: Timefr
   const settings = useSettings();
   const addPos = usePortfolio((s) => s.add);
   const addAlert = useAlerts((s) => s.add);
+  const livePrice = useLivePrices()[symbol]?.price;
   const fa = data.analysis;
 
   if (!fa)
@@ -160,7 +162,16 @@ function Report({ symbol, timeframe, data }: { symbol: string; timeframe: Timefr
               variant="secondary"
               onClick={() => {
                 const p = signal.plan!;
-                addAlert({ symbol, type: p.side === "LONG" ? "price_below" : "price_above", value: p.entryZone[p.side === "LONG" ? 1 : 0], once: true, note: `${t("plan.entryZone")} ${timeframe}` });
+                const [lo, hi] = p.entryZone;
+                const now = livePrice ?? signal.price;
+                // Price alerts fire on a level check, so an alert set while price is already in the
+                // zone would fire on the next tick: only watch for the return into the zone.
+                if (now >= lo && now <= hi) {
+                  toast({ title: t("alerts.inZone"), body: `${symbol} · ${formatPrice(lo)} – ${formatPrice(hi)}`, tone: "warn" });
+                  return;
+                }
+                const above = now > hi;
+                addAlert({ symbol, type: above ? "price_below" : "price_above", value: above ? hi : lo, once: true, note: `${t("plan.entryZone")} ${timeframe}` });
                 toast({ title: t("alerts.new"), body: `${symbol} ${t("plan.entryZone")}`, tone: "success" });
               }}
             >
@@ -342,7 +353,7 @@ function OrderBook({ symbol }: { symbol: string }) {
     <div key={`${side}${i}`} className="relative flex justify-between px-3 py-[2px] text-[11px]">
       <div className={cn("absolute inset-y-0 right-0", side === "bid" ? "bg-bull-soft" : "bg-bear-soft")} style={{ width: `${((p * q) / max) * 100}%` }} />
       <span className={cn("num relative", side === "bid" ? "text-bull" : "text-bear")}>{formatPrice(p)}</span>
-      <span className="num relative text-muted">{q.toFixed(4)}</span>
+      <span className="num relative text-muted">{formatQty(q)}</span>
       <span className="num relative w-16 text-right text-faint">{formatCompact(p * q)}</span>
     </div>
   );
@@ -384,7 +395,7 @@ function Trades({ symbol }: { symbol: string }) {
       {trades.map((x) => (
         <div key={x.a} className="num flex justify-between px-3 py-[2px] text-[11px]">
           <span className={x.m ? "text-bear" : "text-bull"}>{formatPrice(+x.p)}</span>
-          <span className="text-muted">{(+x.q).toFixed(4)}</span>
+          <span className="text-muted">{formatQty(+x.q)}</span>
           <span className="text-faint">{new Date(x.T).toLocaleTimeString()}</span>
         </div>
       ))}

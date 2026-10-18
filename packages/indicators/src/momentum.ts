@@ -114,7 +114,8 @@ export function mfi(candles: readonly Candle[], period = 14): Series {
       if (tp[k]! > tp[k - 1]!) pos += flow;
       else if (tp[k]! < tp[k - 1]!) neg += flow;
     }
-    out[i] = neg === 0 ? 100 : 100 - 100 / (1 + pos / neg);
+    // No money flow either way (flat prices) is neutral, like RSI on flat input.
+    out[i] = pos === 0 && neg === 0 ? 50 : neg === 0 ? 100 : 100 - 100 / (1 + pos / neg);
   }
   return out;
 }

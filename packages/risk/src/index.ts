@@ -13,7 +13,7 @@ export interface RiskConfig {
   /** R multiples for TP1/TP2; TP3 is the runner. */
   targetsR: [number, number, number];
   targetSizes: [number, number, number];
-  /** Signals below this R:R (to TP2) are downgraded to watch-list. */
+  /** Signals below this R:R (size-weighted, targets capped at the next opposing level) are downgraded to watch-list. */
   minRiskReward: number;
 }
 
@@ -66,20 +66,33 @@ export function buildTradePlan(input: PlanInput): TradePlan | null {
     sizePct: cfg.targetSizes[i]!,
     rr: r,
   }));
+  // A short target can't go to zero or below (e.g. with a very wide maxStopPct).
+  if (takeProfits.some((tp) => !(tp.price > 0))) return null;
 
-  // A strong opposing level before TP1 makes the setup worse: pull TP1 in front of it.
+  // R multiple of the next opposing level, when it sits beyond entry.
+  let levelR: Decimal | null = null;
   if (input.nextLevel !== undefined && Number.isFinite(input.nextLevel)) {
     const lvl = new Decimal(input.nextLevel);
-    const tp1 = takeProfits[0]!;
-    const beyondEntry = lvl.minus(e).times(dir).gt(0);
-    if (beyondEntry && lvl.minus(new Decimal(tp1.price)).times(dir).lt(0)) {
-      const adjusted = lvl.minus(a.times(0.1).times(dir));
-      tp1.price = adjusted.toNumber();
-      tp1.rr = adjusted.minus(e).abs().div(risk).toDecimalPlaces(2).toNumber();
+    if (lvl.minus(e).times(dir).gt(0)) {
+      levelR = lvl.minus(e).times(dir).div(risk);
+      // A strong opposing level before TP1 makes the setup worse: pull TP1 in front of it,
+      // but never back across the entry when the level is closer than the 0.1 ATR margin.
+      const tp1 = takeProfits[0]!;
+      if (lvl.minus(new Decimal(tp1.price)).times(dir).lt(0)) {
+        const adjusted = lvl.minus(a.times(0.1).times(dir));
+        const target = adjusted.minus(e).times(dir).gt(0) ? adjusted : lvl;
+        tp1.price = target.toNumber();
+        tp1.rr = target.minus(e).times(dir).div(risk).toDecimalPlaces(2).toNumber();
+      }
     }
   }
 
-  const weighted = takeProfits.reduce((s, tp) => s + (tp.rr * tp.sizePct) / 100, 0);
+  // Size-weighted R:R where every target beyond the opposing level only counts up to that level:
+  // the level is where the move is most likely to stall, so it caps what the plan can expect.
+  const weighted = takeProfits.reduce((s, tp) => {
+    const r = levelR ? Math.min(tp.rr, levelR.toNumber()) : tp.rr;
+    return s + (r * tp.sizePct) / 100;
+  }, 0);
   const zoneHalf = a.times(0.25);
   return {
     side,
@@ -122,7 +135,7 @@ export interface PositionSize {
 /** size = equity × risk% / |entry − stop|, then capped by leverage. Fees are counted in the risk. */
 export function positionSize(input: SizingInput): PositionSize | null {
   const { equity, riskPct, entry, stopLoss, maxLeverage } = input;
-  if (!(equity > 0) || !(entry > 0) || !(riskPct > 0) || entry === stopLoss) return null;
+  if (!(equity > 0) || !(entry > 0) || !(riskPct > 0) || !(stopLoss > 0) || !Number.isFinite(stopLoss) || entry === stopLoss) return null;
   const fee = new Decimal(input.feeRate ?? 0.001);
   const eq = new Decimal(equity);
   const e = new Decimal(entry);
@@ -176,13 +189,31 @@ export const RISK_PROFILES: Record<RiskProfile, { riskPct: number; maxLeverage: 
   aggressive: { riskPct: 2, maxLeverage: 5, maxPositions: 8 },
 };
 
-/** PnL for a position, fees excluded. */
-export function unrealizedPnl(side: Side, entry: number, price: number, quantity: number): { pnl: number; pct: number } {
+/**
+ * PnL for a position, fees excluded. `pct` is the price move; `roe` is the return on margin
+ * (move × leverage), computed before rounding so high leverage doesn't amplify rounding error.
+ */
+export function unrealizedPnl(side: Side, entry: number, price: number, quantity: number, leverage = 1): { pnl: number; pct: number; roe: number } {
   const d = new Decimal(price).minus(entry).times(side === "LONG" ? 1 : -1);
+  const move = d.div(entry).times(100);
   return {
     pnl: d.times(quantity).toDecimalPlaces(2).toNumber(),
-    pct: d.div(entry).times(100).toDecimalPlaces(2).toNumber(),
+    pct: move.toDecimalPlaces(2).toNumber(),
+    roe: move.times(Math.max(1, leverage)).toDecimalPlaces(2).toNumber(),
   };
+}
+
+/**
+ * Most a position can lose if its stop is hit: (entry − stop) × qty in the losing direction
+ * (0 once the stop locks in profit), but never more than the isolated margin, because a stop
+ * beyond the liquidation price is never reached. Null without a stop.
+ */
+export function maxLoss(p: { side: Side; entry: number; stopLoss?: number; quantity: number; leverage: number }): number | null {
+  if (p.stopLoss === undefined || !(p.stopLoss > 0)) return null;
+  const q = new Decimal(p.quantity);
+  const atStop = Decimal.max(0, new Decimal(p.entry).minus(p.stopLoss).times(p.side === "LONG" ? 1 : -1).times(q));
+  if (!(p.leverage > 1)) return atStop.toNumber();
+  return Decimal.min(atStop, new Decimal(p.entry).times(q).div(p.leverage)).toNumber();
 }
 export * from "./paper";
 export * from "./calculators";

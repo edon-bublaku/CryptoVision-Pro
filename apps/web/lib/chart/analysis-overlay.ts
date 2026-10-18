@@ -170,7 +170,7 @@ export class AnalysisOverlay implements ISeriesPrimitive<Time> {
       ctx.lineTo(x1 + w, ys);
       ctx.stroke();
       ctx.fillStyle = bear;
-      ctx.fillText(`SL ${formatPrice(p.plan.stopLoss)} (−${p.plan.stopPct}%)`, x1 + w + 4, ys);
+      ctx.fillText(`SL ${formatPrice(p.plan.stopLoss)} (${p.plan.side === "LONG" ? "−" : "+"}${p.plan.stopPct}%)`, x1 + w + 4, ys);
       ctx.strokeStyle = "rgba(231,235,243,0.8)";
       ctx.setLineDash([4, 3]);
       ctx.beginPath();

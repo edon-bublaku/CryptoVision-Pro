@@ -131,7 +131,7 @@ export const alerts = pgTable(
     value: money("value").notNull(),
     timeframe: text("timeframe"),
     /** For drawing alerts: the line geometry at creation time. */
-    drawing: jsonb("drawing").$type<{ id: string; type: string; points: { time: number; price: number }[] } | null>(),
+    drawing: jsonb("drawing").$type<{ id: string; type: string; points: { time: number; price: number }[]; log?: boolean } | null>(),
     once: boolean("once").notNull().default(true),
     active: boolean("active").notNull().default(true),
     lastSide: smallint("last_side"),

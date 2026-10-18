@@ -33,7 +33,7 @@ export function PlanTable({ signal, compact }: { signal: Signal; compact?: boole
           <div className={row}>
             <span className="text-bear">{t("plan.stop")}</span>
             <span className="num font-semibold text-bear">
-              {formatPrice(plan.stopLoss)} <span className="text-xs font-normal">(−{plan.stopPct}%)</span>
+              {formatPrice(plan.stopLoss)} <span className="text-xs font-normal">({plan.side === "LONG" ? "−" : "+"}{plan.stopPct}%)</span>
             </span>
           </div>
           {plan.takeProfits.map((tp, i) => (
@@ -64,7 +64,8 @@ export function PlanTable({ signal, compact }: { signal: Signal; compact?: boole
             <div className={row}>
               <span className="text-muted">{t("plan.risk")}</span>
               <span className="num text-bear">
-                ${size.riskAmount.toLocaleString()} ({s.riskPct}%)
+                {/* The actual risk: smaller than the setting when leverage capped the position. */}
+                ${size.riskAmount.toLocaleString()} ({((size.riskAmount / s.equity) * 100).toFixed(2)}%)
               </span>
             </div>
             <div className={row}>

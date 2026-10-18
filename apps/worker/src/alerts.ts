@@ -26,7 +26,10 @@ export function lineLevel(d: NonNullable<ActiveAlert["drawing"]>, t: number): nu
   const [a, b] = d.points;
   if (!a) return null;
   if (d.type === "hline" || d.type === "hray" || !b || b.time === a.time) return a.price;
-  return a.price + ((b.price - a.price) * (t - a.time)) / (b.time - a.time);
+  const k = (t - a.time) / (b.time - a.time);
+  // Drawn on a log chart the line is straight in log(price): interpolate geometrically to match.
+  if (d.log && a.price > 0 && b.price > 0) return a.price * Math.pow(b.price / a.price, k);
+  return a.price + (b.price - a.price) * k;
 }
 
 /**

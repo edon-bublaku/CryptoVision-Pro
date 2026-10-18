@@ -55,7 +55,7 @@ export const alertSchema = z.object({
   value: finite,
   timeframe: z.enum(TIMEFRAMES as [string, ...string[]]).optional(),
   drawingId: z.string().max(64).optional(),
-  drawing: z.object({ id: z.string(), type: z.string(), points: z.array(z.object({ time: finite, price: finite })).max(10) }).optional(),
+  drawing: z.object({ id: z.string(), type: z.string(), points: z.array(z.object({ time: finite, price: finite })).max(10), log: z.boolean().optional() }).optional(),
   once: z.boolean(),
   active: z.boolean(),
   createdAt: finite,

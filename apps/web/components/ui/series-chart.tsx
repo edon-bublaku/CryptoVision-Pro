@@ -137,13 +137,26 @@ export function SeriesChart({
   );
 }
 
-/** Compact money formatter for axes: $1.2k, $3.4M. */
+/** Compact money formatter for axes: $1.2k, $3.4M, $1.1B. */
 export function compactUsd(v: number): string {
   if (!Number.isFinite(v)) return "—";
   if (v === 0) return "$0";
   const a = Math.abs(v);
   // One decimal below 100k/100M so neighbouring axis ticks (10.5k, 11k) stay distinct.
-  const short = (x: number, unit: string) => `${Number(x.toFixed(x >= 100 ? 0 : 1))}${unit}`;
-  const s = a >= 1e6 ? short(a / 1e6, "M") : a >= 1e3 ? short(a / 1e3, "k") : a.toFixed(a < 10 ? 2 : 0);
+  const units = ["", "k", "M", "B"];
+  // One decimal below 100 of a unit so neighbouring axis ticks (10.5k, 11k) stay distinct.
+  const show = (x: number, k: number) => (k === 0 ? Number(x.toFixed(x < 10 ? 2 : 0)) : Number(x.toFixed(x >= 100 ? 0 : 1)));
+  let x = a;
+  let k = 0;
+  while (k < 3 && x >= 1000) {
+    x /= 1000;
+    k++;
+  }
+  // Roll over after rounding, so 999,950 reads $1M and not $1000k.
+  if (k < 3 && show(x, k) >= 1000) {
+    x /= 1000;
+    k++;
+  }
+  const s = k === 0 ? x.toFixed(x < 10 ? 2 : 0) : `${show(x, k)}${units[k]}`;
   return `${v < 0 ? "−" : ""}$${s}`;
 }

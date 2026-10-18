@@ -95,6 +95,54 @@ function logReturns(xs: readonly number[], end: number, n: number): number[] {
   return out;
 }
 
+/**
+ * Log returns of `a` and `b` over the last `n` bars of `a` (up to ia), matched by timestamp, so a
+ * day missing on one coin (halt, late listing) never pairs returns from different days.
+ */
+function alignedReturns(a: RatingContext, ia: number, b: RatingContext, ib: number, n: number): [number[], number[]] {
+  const bClose = new Map<number, number>();
+  for (let k = 0; k <= ib; k++) bClose.set(b.candles[k]!.time, b.sc.close[k]!);
+  const pa: number[] = [];
+  const pb: number[] = [];
+  for (let k = Math.max(0, ia - n); k <= ia; k++) {
+    const t = a.candles[k]!.time;
+    const cb = bClose.get(t);
+    if (cb === undefined) continue;
+    pa.push(a.sc.close[k]!);
+    pb.push(cb);
+  }
+  const ra: number[] = [];
+  const rb: number[] = [];
+  for (let k = 1; k < pa.length; k++) {
+    ra.push(Math.log(pa[k]! / pa[k - 1]!));
+    rb.push(Math.log(pb[k]! / pb[k - 1]!));
+  }
+  return [ra, rb];
+}
+
+/**
+ * Normalises raw weights to sum to 1 with no weight above `cap` (water-filling): capped coins are
+ * fixed at the cap and the rest is shared among the others in proportion, until nothing exceeds it.
+ * When every coin is capped (n × cap < 1) the weights sum to n × cap and the rest is cash.
+ */
+export function capWeights(raw: readonly number[], cap: number): number[] {
+  const out = raw.map(() => 0);
+  let free = raw.map((_, k) => k).filter((k) => raw[k]! > 0);
+  let budget = 1;
+  while (free.length && budget > 1e-12) {
+    const total = free.reduce((a, k) => a + raw[k]!, 0);
+    const over = free.filter((k) => (raw[k]! / total) * budget > cap);
+    if (!over.length) {
+      for (const k of free) out[k] = (raw[k]! / total) * budget;
+      break;
+    }
+    for (const k of over) out[k] = cap;
+    budget -= cap * over.length;
+    free = free.filter((k) => !over.includes(k));
+  }
+  return out;
+}
+
 export function marketState(rows: { ctx: RatingContext; i: number; rating: Rating }[], bench: { ctx: RatingContext; i: number } | undefined, s: RecommendSettings): MarketState {
   const above50 = rows.filter(({ ctx, i }) => fin(ctx.sc.ema50[i]) && ctx.sc.close[i]! > ctx.sc.ema50[i]!).length;
   const breadth = rows.length ? above50 / rows.length : 0;
@@ -139,10 +187,9 @@ export function recommend(
       excluded.push({ symbol: r.symbol, reason: "full", score: r.rating.score });
       continue;
     }
-    const mine = logReturns(r.ctx.sc.close, r.i, 90);
     let worst: { with: string; rho: number } | null = null;
     for (const c of chosen) {
-      const rho = correlation(mine, logReturns(c.ctx.sc.close, c.i, 90));
+      const rho = correlation(...alignedReturns(r.ctx, r.i, c.ctx, c.i, 90));
       if (rho > s.maxCorrelation && (!worst || rho > worst.rho)) worst = { with: c.symbol, rho };
     }
     if (worst) {
@@ -155,23 +202,20 @@ export function recommend(
   // Inverse volatility × rating tilt, capped, normalised to the regime exposure.
   const raw = chosen.map((c) => {
     const vol = stdev(logReturns(c.ctx.sc.close, c.i, 30)) * Math.sqrt(365) * 100;
-    return { c, vol, w: (1 / Math.max(vol, 10)) * ((c.rating.score - 50) / 50) };
+    // Tilt is 0 at a score of 50, so a caller-supplied minScore below 50 can't make weights negative.
+    return { c, vol, w: (1 / Math.max(vol, 10)) * Math.max(0, (c.rating.score - 50) / 50) };
   });
-  let w = raw.map((x) => x.w);
-  for (let pass = 0; pass < 5 && w.length; pass++) {
-    const total = w.reduce((a, b) => a + b, 0);
-    w = w.map((v) => Math.min(v / total, s.maxWeight));
-  }
-  const sum = w.reduce((a, b) => a + b, 0);
-  // When the cap binds for every coin (few picks), the uncapped remainder stays in cash.
-  const invested = Math.min(1, sum) * market.exposure;
+  const w = capWeights(
+    raw.map((x) => x.w),
+    s.maxWeight,
+  );
   const picks: Pick[] = raw.map(({ c, vol }, k) => {
     const ordered = [...c.rating.pillars].sort((a, b) => b.score - a.score);
     const weakest = ordered[ordered.length - 1];
     return {
       symbol: c.symbol,
       rating: c.rating,
-      weight: sum ? (w[k]! / sum) * invested : 0,
+      weight: w[k]! * market.exposure,
       vol30: vol,
       strengths: ordered.slice(0, 2).map((p) => p.id),
       watch: weakest && weakest.score < 45 ? weakest.id : null,

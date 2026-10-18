@@ -61,7 +61,7 @@ export interface JournalStats {
   currentStreak: number;
   /** Largest fall of the cumulative PnL from its running peak, in quote currency (≤ 0). */
   maxDrawdown: number;
-  /** Same, as % of the peak equity (start equity + cumulative PnL). */
+  /** Same, as % of the peak equity (start equity + cumulative PnL); NaN without a positive start equity. */
   maxDrawdownPct: number;
   /** Average holding time in hours. */
   avgHoldHours: number;
@@ -130,7 +130,7 @@ export function journalStats(input: readonly JournalTrade[], startEquity = 0): J
     if (eq.gt(peak)) peak = eq;
     const dd = eq.minus(peak);
     if (dd.lt(maxDd)) maxDd = dd;
-    if (peak.gt(0)) maxDdPct = Math.min(maxDdPct, num(dd.div(peak).times(100), 4));
+    if (startEquity > 0 && peak.gt(0)) maxDdPct = Math.min(maxDdPct, num(dd.div(peak).times(100), 4));
     equity.push({ time: t.closedAt, value: num(eq, 2) });
   }
   const last = trades[trades.length - 1]!;
@@ -168,7 +168,7 @@ export function journalStats(input: readonly JournalTrade[], startEquity = 0): J
     maxLossStreak: maxLoss,
     currentStreak,
     maxDrawdown: num(maxDd, 2),
-    maxDrawdownPct: maxDdPct,
+    maxDrawdownPct: startEquity > 0 ? maxDdPct : NaN,
     avgHoldHours: trades.reduce((s, t) => s + Math.max(0, t.closedAt - t.openedAt), 0) / trades.length / 3_600_000,
     equity,
     bySymbol: group(trades, (t) => t.symbol),

@@ -32,12 +32,17 @@ Parametrat e testit:
 
 | Strategjia | BTC trade / win / PF | ETH trade / win / PF | SOL trade / win / PF |
 |---|---|---|---|
-| Trend Pullback | 29 / 38% / 0.78 | 20 / 50% / 0.25 | 31 / 26% / 0.29 |
-| Breakout me volum | 27 / 52% / 0.87 | 28 / 61% / **2.07** | 29 / 48% / **1.12** |
-| SMC OB/FVG | 17 / 41% / 0.64 | 8 / 25% / 0.10 | 11 / 36% / 0.15 |
-| MACD/ADX | 4 / 25% / 0.06 | 6 / 83% / **3.03** | 6 / 33% / 0.10 |
-| Divergjencë RSI | 7 / 57% / 0.14 | 6 / 50% / 0.19 | 5 / 40% / 0.05 |
-| Mean Reversion | 1 / — | 1 / — | 1 / — |
+| Trend Pullback | 16 / 44% / **1.14** | 13 / 38% / 0.53 | 20 / 20% / 0.33 |
+| Breakout me volum | 17 / 35% / 0.83 | 21 / 52% / **1.36** | 13 / 54% / **1.63** |
+| SMC OB/FVG | 5 / 40% / 0.29 | 4 / 25% / 0.12 | 4 / 25% / 0.15 |
+| MACD/ADX | 2 / 50% / 2.34 | 0 / — | 3 / 0% / 0.00 |
+| Divergjencë RSI | 0 / — | 0 / — | 0 / — |
+| Mean Reversion | 0 / — | 1 / 0% / 0.00 | 0 / — |
+
+Pas auditimit të llogaritjeve ([ADR 0010](../decisions/0010-calculation-audit.md)) rregulli "R:R < 1.5 →
+vëzhgim" funksionon vërtet: R:R kufizohet nga niveli i parë kundërshtues. Prandaj ka rreth gjysmën e
+trade-ve të mëparshme. Setup-et pa hapësirë deri te rezistenca/mbështetja nuk merren më. Numrat me pak
+trade (p.sh. MACD/ADX 2 trade) nuk kanë vlerë statistikore.
 
 ### Validimi jashtë mostrës (`pnpm validate:oos`)
 
@@ -46,8 +51,12 @@ Parametrat e testit:
 
 | Grupi | Trade | Win rate | Profit factor | Pritshmëria |
 |---|---|---|---|---|
-| Të gjitha strategjitë | 1178 | 39.2% | 0.71 | −0.15R |
-| Vetëm strategjitë që kaluan gate-in | 358 | 39.9% | 0.75 | −0.13R |
+| Të gjitha strategjitë | 629 | 39.3% | 0.79 | −0.14R |
+| Vetëm strategjitë që kaluan gate-in | 146 | 32.9% | 0.66 | −0.24R |
+
+Para auditimit të llogaritjeve: 1178 trade / PF 0.71 dhe 358 trade / PF 0.75. Filtri i ri R:R e përmirëson
+pak grupin e plotë. Grupi me gate përkeqësohet, sepse me më pak trade në 60% të parë ndryshon se cilat
+strategji kalojnë gate-in. Asnjë nga të dyja nuk ka avantazh.
 
 **Përfundimi i ndershëm:** asnjë nga këto rregulla klasike të analizës teknike nuk tregon avantazh
 të qëndrueshëm jashtë mostrës në këtë periudhë. Kjo është arsyeja pse aplikacioni:

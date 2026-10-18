@@ -20,7 +20,8 @@ export function DerivativesPanel({ symbol }: { symbol: string }) {
   if (isLoading) return <Skeleton className="h-28" />;
   if (!data) return <p className="text-xs text-muted">{t("deriv.none")}</p>;
   const fr = data.fundingRate * 100;
-  const annual = fr * 3 * 365;
+  // Annualise by the instrument's own settlement interval (not every swap funds every 8h).
+  const annual = fr * (24 / (data.fundingIntervalHours || 8)) * 365;
   const takerTotal = data.takerBuy24h + data.takerSell24h || 1;
   const buyShare = data.takerBuy24h / takerTotal;
   const row = "flex items-center justify-between py-1 text-xs";

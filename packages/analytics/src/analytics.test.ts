@@ -129,3 +129,13 @@ describe("assetStats", () => {
     expect(Number.isFinite(eth.vol30d)).toBe(true);
   });
 });
+
+describe("assetStats on short histories", () => {
+  it("reports ret90d as NaN instead of a shorter return", async () => {
+    const { alignCloses, assetStats } = await import("./index");
+    const candles = Array.from({ length: 50 }, (_, i) => ({ time: i * 86_400, open: 100 + i, high: 100 + i, low: 100 + i, close: 100 + i, volume: 1 }));
+    const s = assetStats(alignCloses([{ symbol: "A", candles }, { symbol: "BTCUSDT", candles }]), "BTCUSDT");
+    expect(s[0]!.ret90d).toBeNaN();
+    expect(s[0]!.ret30d).toBeCloseTo((149 / 119 - 1) * 100, 9);
+  });
+});

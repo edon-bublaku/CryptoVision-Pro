@@ -182,7 +182,8 @@ export function fairValueGaps(candles: readonly Candle[], minSizeAtr = 0.2): Zon
 
 /**
  * Order blocks: the last opposite-colour candle before an impulsive move that breaks structure.
- * Impulsive = body range over 3 bars of at least `impulseAtr` × ATR.
+ * Impulsive = close-to-open move over the last 4 bars (the break bar and the 3 before it) of at
+ * least `impulseAtr` × ATR.
  */
 export function orderBlocks(candles: readonly Candle[], impulseAtr = 1.5): Zone[] {
   const a = atr(candles, 14);

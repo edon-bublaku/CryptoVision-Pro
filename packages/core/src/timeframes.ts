@@ -26,6 +26,16 @@ export const HIGHER_TIMEFRAME: Record<Timeframe, Timeframe> = {
 /** How many bars a signal stays valid before it expires. */
 export const SIGNAL_TTL_BARS = 6;
 
+const WEEK = 7 * 86_400;
+/** The Unix epoch was a Thursday; exchange weeks (Binance 1w) start on Monday 00:00 UTC. */
+const MONDAY_OFFSET = 4 * 86_400;
+
+/** Start of the UTC bucket containing `time`; weekly buckets start on Monday like exchange 1w candles. */
+export function bucketStart(time: number, bucketSeconds: number): number {
+  if (bucketSeconds === WEEK) return Math.floor((time - MONDAY_OFFSET) / WEEK) * WEEK + MONDAY_OFFSET;
+  return Math.floor(time / bucketSeconds) * bucketSeconds;
+}
+
 /**
  * Aggregates candles into a higher timeframe by UTC buckets. The last bucket may be
  * incomplete; callers that need closed candles only should check `isClosed`.
@@ -33,7 +43,7 @@ export const SIGNAL_TTL_BARS = 6;
 export function resample(candles: readonly { time: number; open: number; high: number; low: number; close: number; volume: number; quoteVolume?: number; takerBuyVolume?: number }[], bucketSeconds: number) {
   const out: { time: number; open: number; high: number; low: number; close: number; volume: number; quoteVolume: number; takerBuyVolume: number; lastIndex: number }[] = [];
   candles.forEach((c, idx) => {
-    const t = Math.floor(c.time / bucketSeconds) * bucketSeconds;
+    const t = bucketStart(c.time, bucketSeconds);
     const cur = out[out.length - 1];
     if (cur && cur.time === t) {
       cur.high = Math.max(cur.high, c.high);

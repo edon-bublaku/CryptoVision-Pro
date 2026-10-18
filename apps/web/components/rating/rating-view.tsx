@@ -224,7 +224,7 @@ export function InvestmentPlanView({ plan, rating, symbol }: { plan: InvestmentP
     const tp = plan.targets[1]?.price ?? plan.targets[0]?.price;
     for (const e of plan.entries) {
       const quantity = (plan.quantity * e.sizePct) / 100;
-      const base = { symbol, side: plan.side!, quantity, stopLoss: plan.stopLoss, takeProfit: tp, leverage: Math.max(1, Math.round(plan.leverage)) };
+      const base = { symbol, side: plan.side!, quantity, stopLoss: plan.stopLoss, takeProfit: tp, leverage: Math.max(1, plan.leverage) };
       if (e.kind === "market") addPosition({ ...base, entry: price, paper: true, notes: `CV Rating ${Math.round(rating.score)} · ${e.sizePct}%` });
       else placeOrder({ ...base, type: e.kind === "stop" ? "STOP" : "LIMIT", price: e.price, note: `CV Rating ${Math.round(rating.score)} · ${e.sizePct}%` });
     }

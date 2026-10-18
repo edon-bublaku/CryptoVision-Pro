@@ -173,7 +173,8 @@ export function assetStats(aligned: Aligned, bench: string, lookback = 90): Asse
   const b = aligned.closes[bench] ?? [];
   return Object.entries(aligned.closes).map(([symbol, c]) => {
     const r = rrg(c, b, aligned.times);
-    const ret90 = periodReturn(c, Math.min(90, c.length - 1));
+    // NaN without 90 bars of history, like ret7d/ret30d: a shorter return must not pass as 90d.
+    const ret90 = periodReturn(c, 90);
     const vol90 = realizedVol(c, 90);
     const lastPoint = r[r.length - 1];
     return {

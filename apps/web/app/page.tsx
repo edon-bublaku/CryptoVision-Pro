@@ -42,6 +42,8 @@ export default function Dashboard() {
   const btc = tickers?.find((x) => x.symbol === "BTCUSDT");
   const eth = tickers?.find((x) => x.symbol === "ETHUSDT");
   const adv = liquid.filter((x) => x.priceChangePercent > 0).length;
+  // Unchanged coins are neither advancers nor decliners.
+  const dec = liquid.filter((x) => x.priceChangePercent < 0).length;
   const fgNow = fg.data?.[fg.data.length - 1];
 
   const top = useMemo(
@@ -81,10 +83,11 @@ export default function Dashboard() {
           {liquid.length ? (
             <>
               <div className="num mt-1 text-lg font-semibold">
-                <span className="text-bull">{adv}</span> / <span className="text-bear">{liquid.length - adv}</span>
+                <span className="text-bull">{adv}</span> / <span className="text-bear">{dec}</span>
               </div>
               <div className="mt-1 flex h-1.5 overflow-hidden rounded-full bg-bear">
                 <div className="bg-bull" style={{ width: `${(adv / liquid.length) * 100}%` }} />
+                <div className="bg-muted" style={{ width: `${((liquid.length - adv - dec) / liquid.length) * 100}%` }} />
               </div>
               <div className="mt-1 text-[11px] text-muted">
                 {t("dash.advancers")} / {t("dash.decliners")} · top {liquid.length}

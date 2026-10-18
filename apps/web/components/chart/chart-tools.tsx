@@ -239,13 +239,13 @@ function canAlert(d: Drawing) {
   return ["hline", "hray", "trendline", "ray", "extended"].includes(d.type);
 }
 
-/** Current price level of a line drawing, used for drawing alerts. */
-export function drawingLevelAt(d: Drawing, time: number): number | null {
+/** Current price level of a line drawing, used for drawing alerts (`log` = chart on a log scale). */
+export function drawingLevelAt(d: Drawing, time: number, log = useSettings.getState().chart.log): number | null {
   const [a, b] = d.points;
   if (!a) return null;
   if (d.type === "hline" || d.type === "hray") return a.price;
   if (!b) return null;
-  return priceOnLine(a, b, time);
+  return priceOnLine(a, b, time, log);
 }
 
 /** Floating style editor for the selected drawing. */

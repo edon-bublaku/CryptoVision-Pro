@@ -79,15 +79,18 @@ export function candlePatternsAt(candles: readonly Candle[], i: number, atrValue
     if (bull(p1) && bear(c) && c.open > p1.close && c.close < mid1 && c.close > p1.open) push("dark_cloud_cover", "bearish", 0.45, trend > 0);
     const inside = c.high <= p1.high && c.low >= p1.low;
     if (inside) push("inside_bar", "neutral", 0.3, false);
-    if (inside && bear(p1) && bull(c) && body(p1) > avgRange * 0.6) push("bullish_harami", "bullish", 0.35, trend < 0);
-    if (inside && bull(p1) && bear(c) && body(p1) > avgRange * 0.6) push("bearish_harami", "bearish", 0.35, trend > 0);
+    // Harami: the real body sits inside the previous real body (wicks don't matter).
+    const bodyInside = Math.max(c.open, c.close) <= Math.max(p1.open, p1.close) && Math.min(c.open, c.close) >= Math.min(p1.open, p1.close);
+    if (bodyInside && bear(p1) && bull(c) && body(p1) > avgRange * 0.6) push("bullish_harami", "bullish", 0.35, trend < 0);
+    if (bodyInside && bull(p1) && bear(c) && body(p1) > avgRange * 0.6) push("bearish_harami", "bearish", 0.35, trend > 0);
   }
 
   if (p1 && p2) {
     const smallMiddle = body(p1) <= range(p1) * 0.3;
-    if (bear(p2) && body(p2) > avgRange * 0.6 && smallMiddle && bull(c) && c.close > (p2.open + p2.close) / 2)
+    // The star's body must sit beyond the first candle's close (below it for a morning star).
+    if (bear(p2) && body(p2) > avgRange * 0.6 && smallMiddle && Math.max(p1.open, p1.close) < p2.close && bull(c) && c.close > (p2.open + p2.close) / 2)
       push("morning_star", "bullish", 0.6, trend < 0 || priorTrend(candles, i - 1) < 0);
-    if (bull(p2) && body(p2) > avgRange * 0.6 && smallMiddle && bear(c) && c.close < (p2.open + p2.close) / 2)
+    if (bull(p2) && body(p2) > avgRange * 0.6 && smallMiddle && Math.min(p1.open, p1.close) > p2.close && bear(c) && c.close < (p2.open + p2.close) / 2)
       push("evening_star", "bearish", 0.6, trend > 0 || priorTrend(candles, i - 1) > 0);
     const three = [p2, p1, c];
     if (three.every(bull) && p1.close > p2.close && c.close > p1.close && three.every((x) => body(x) > range(x) * 0.5))

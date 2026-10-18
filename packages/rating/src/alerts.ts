@@ -11,7 +11,8 @@ export function resolveWeights(preset: unknown, custom?: unknown): PillarWeights
     const w = Object.fromEntries(PILLAR_IDS.map((p) => [p, typeof c[p] === "number" && Number.isFinite(c[p]) && (c[p] as number) >= 0 ? c[p] : 0])) as PillarWeights;
     if (PILLAR_IDS.some((p) => w[p] > 0)) return w;
   }
-  return WEIGHT_PRESETS[preset as PresetId] ?? WEIGHT_PRESETS.balanced;
+  // Own keys only: "constructor" or "__proto__" must not resolve to Object.prototype members.
+  return typeof preset === "string" && Object.hasOwn(WEIGHT_PRESETS, preset) ? WEIGHT_PRESETS[preset as PresetId] : WEIGHT_PRESETS.balanced;
 }
 
 export type RatingAlertType = "rating_above" | "rating_below";
